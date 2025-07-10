@@ -1,10 +1,28 @@
 "use client"
 
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { DashboardContent } from "@/components/dashboard-content"
 
 export default function Dashboard() {
+  const router = useRouter();
+  const [hasToken, setHasToken] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem("tiendanube_access_token");
+    if (!token) {
+      setHasToken(false);
+      window.location.href = "/api/tiendanube/authorize";
+    } else {
+      setHasToken(true);
+    }
+  }, []);
+
+  if (hasToken === false) return null;
+  if (hasToken === null) return null;
+
   return (
     <SidebarProvider>
       <AppSidebar />
