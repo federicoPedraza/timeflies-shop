@@ -3,7 +3,6 @@ import { OrdersTable } from "@/components/orders-table"
 import { StatsCards } from "@/components/stats-cards"
 import { OrderChart } from "@/components/order-chart"
 import { RecentActivity } from "@/components/recent-activity"
-import { EcommerceSection } from "@/components/ecommerce-section"
 
 export function DashboardContent() {
   return (
@@ -25,8 +24,6 @@ export function DashboardContent() {
       </div>
 
       <OrdersTable />
-
-      <EcommerceSection />
     </div>
   )
 }

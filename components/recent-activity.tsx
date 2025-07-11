@@ -38,7 +38,7 @@ const activities = [
   },
 ]
 
-const statusColors = {
+const statusColors: Record<string, string> = {
   new: "bg-blue-500",
   success: "bg-green-500",
   info: "bg-gray-500",

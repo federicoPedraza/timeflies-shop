@@ -9,6 +9,7 @@ export default function TiendanubeCallback() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>("loading");
   const [errorMsg, setErrorMsg] = useState<string>("");
+  const [envVars, setEnvVars] = useState<{TIENDANUBE_ACCESS_TOKEN: string, TIENDANUBE_USER_ID: string} | null>(null);
 
   useEffect(() => {
     const code = searchParams.get("code");
@@ -17,8 +18,9 @@ export default function TiendanubeCallback() {
         .then((res) => res.json())
         .then((data) => {
           if (data.access_token && data.user_id) {
-            localStorage.setItem("tiendanube_access_token", data.access_token);
+            // Guardar solo el user_id en localStorage para referencia
             localStorage.setItem("tiendanube_user_id", data.user_id);
+            setEnvVars(data.env_variables);
             setStatus("success");
             setTimeout(() => router.push("/"), 1200);
           } else {
@@ -52,7 +54,25 @@ export default function TiendanubeCallback() {
             <div className="rounded-full h-10 w-10 bg-green-500 flex items-center justify-center mx-auto mb-4">
               <span className="text-white text-xl">✓</span>
             </div>
-            <p className="text-green-700 font-semibold">¡Autorización exitosa! Redirigiendo...</p>
+            <p className="text-green-700 font-semibold mb-4">¡Autorización exitosa!</p>
+            <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-800 mb-4">
+              <p className="font-semibold mb-2">⚠️ Importante:</p>
+              <p>Agrega las siguientes variables a tu archivo .env:</p>
+              <code className="block mt-2 p-2 bg-blue-100 rounded text-xs">
+                {envVars ? (
+                  <>
+                    TIENDANUBE_ACCESS_TOKEN={envVars.TIENDANUBE_ACCESS_TOKEN}<br/>
+                    TIENDANUBE_USER_ID={envVars.TIENDANUBE_USER_ID}
+                  </>
+                ) : (
+                  <>
+                    TIENDANUBE_ACCESS_TOKEN=tu_access_token_aqui<br/>
+                    TIENDANUBE_USER_ID=tu_user_id_aqui
+                  </>
+                )}
+              </code>
+            </div>
+            <p className="text-sm text-muted-foreground">Redirigiendo al dashboard...</p>
           </>
         )}
         {status === "error" && (

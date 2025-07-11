@@ -2,42 +2,72 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Clock, DollarSign, Package, ShoppingCart, TrendingUp, TrendingDown } from "lucide-react"
-
-const stats = [
-  {
-    title: "Total Revenue",
-    value: "$45,231.89",
-    change: "+20.1% from last month",
-    icon: DollarSign,
-    trend: "up",
-  },
-  {
-    title: "Orders",
-    value: "2,350",
-    change: "+180.1% from last month",
-    icon: ShoppingCart,
-    trend: "up",
-  },
-  {
-    title: "Clocks Sold",
-    value: "12,234",
-    change: "+19% from last month",
-    icon: Clock,
-    trend: "up",
-  },
-  {
-    title: "Active Products",
-    value: "573",
-    change: "-4.3% from last month",
-    icon: Package,
-    trend: "down",
-  },
-]
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
 
 export function StatsCards() {
+  const dashboardStats = useQuery(api.products.getDashboardStats)
+
+  // Debug: Log para verificar si los datos se están actualizando
+  console.log("🔄 StatsCards - dashboardStats:", dashboardStats)
+
+  // Valores por defecto mientras se cargan los datos
+  const defaultStats = {
+    totalRevenue: "$0.00",
+    orders: "0",
+    clocksSold: "0",
+    activeProducts: "0",
+    trends: {
+      revenue: "+0% from last month",
+      orders: "+0% from last month",
+      clocks: "+0% from last month",
+      products: "+0% from last month"
+    }
+  }
+
+  // Usar datos del backend si están disponibles, sino usar valores por defecto
+  const stats = dashboardStats ? {
+    totalRevenue: `$${dashboardStats.totalRevenue.toLocaleString()}`,
+    orders: dashboardStats.totalOrders.toLocaleString(),
+    clocksSold: dashboardStats.totalClocksSold.toLocaleString(),
+    activeProducts: dashboardStats.activeProducts.toLocaleString(),
+    trends: dashboardStats.trends
+  } : defaultStats
+
+  const statsConfig = [
+    {
+      title: "Total Revenue",
+      value: stats.totalRevenue,
+      change: stats.trends.revenue,
+      icon: DollarSign,
+      trend: "up",
+    },
+    {
+      title: "Orders",
+      value: stats.orders,
+      change: stats.trends.orders,
+      icon: ShoppingCart,
+      trend: "up",
+    },
+    {
+      title: "Clocks Sold",
+      value: stats.clocksSold,
+      change: stats.trends.clocks,
+      icon: Clock,
+      trend: "up",
+    },
+    {
+      title: "Active Products",
+      value: stats.activeProducts,
+      change: stats.trends.products,
+      icon: Package,
+      trend: "down",
+    },
+  ]
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      {stats.map((stat) => (
+      {statsConfig.map((stat) => (
         <Card key={stat.title}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>

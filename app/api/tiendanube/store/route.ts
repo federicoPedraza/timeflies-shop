@@ -19,34 +19,35 @@ export async function GET(request: NextRequest) {
   console.log('🚀 [Tiendanube Store] Endpoint called');
 
   try {
-    // Obtener el access token del header Authorization
-    const authHeader = request.headers.get('authorization');
-    console.log('🔍 [Tiendanube Store] Auth header:', authHeader ? 'Present' : 'Missing');
+    // Usar el access token del .env
+    const accessToken = process.env.TIENDANUBE_ACCESS_TOKEN;
+    console.log('🔑 [Tiendanube Store] Access token from .env:', accessToken ? 'Present' : 'Missing');
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('❌ [Tiendanube Store] Invalid auth header format');
+    if (!accessToken) {
+      console.log('❌ [Tiendanube Store] No access token found in .env');
       return NextResponse.json(
-        { error: 'Access token required' },
-        { status: 401 }
+        { error: 'TIENDANUBE_ACCESS_TOKEN not configured in .env' },
+        { status: 500 }
       );
     }
 
-    const accessToken = authHeader.replace('Bearer ', '');
-    console.log('🔑 [Tiendanube Store] Access token length:', accessToken.length);
-
-    // Obtener el user_id del header (el frontend debe enviarlo)
-    const userId = request.headers.get('x-tiendanube-user-id');
-    console.log('👤 [Tiendanube Store] User ID from header:', userId);
+    // Obtener el user_id del .env o del header como fallback
+    let userId = process.env.TIENDANUBE_USER_ID;
+    if (!userId) {
+      userId = request.headers.get('x-tiendanube-user-id') || undefined;
+    }
+    console.log('👤 [Tiendanube Store] User ID:', userId);
 
     const userAgent = process.env.TIENDANUBE_USER_AGENT;
 
     console.log('⚙️ [Tiendanube Store] Environment variables:');
     console.log('   - TIENDANUBE_USER_AGENT:', userAgent ? 'Present' : 'Missing');
+    console.log('   - TIENDANUBE_USER_ID:', userId ? 'Present' : 'Missing');
 
     if (!userId || !userAgent) {
       console.log('❌ [Tiendanube Store] Missing user ID or user agent');
       return NextResponse.json(
-        { error: 'User ID or Tiendanube configuration missing' },
+        { error: 'TIENDANUBE_USER_ID or TIENDANUBE_USER_AGENT not configured in .env' },
         { status: 500 }
       );
     }

@@ -1,6 +1,8 @@
 "use client"
 
 import { BarChart3, Clock, Home, Package, Settings, ShoppingCart, TrendingUp, Users } from "lucide-react"
+import { useRouter, usePathname } from "next/navigation"
+import { useTiendanubeStatus } from "@/hooks/use-tiendanube-status"
 
 import {
   Sidebar,
@@ -18,37 +20,54 @@ import {
 const menuItems = [
   {
     title: "Overview",
-    url: "#",
+    path: "/",
     icon: Home,
   },
   {
     title: "Orders",
-    url: "#",
+    path: "/orders",
     icon: ShoppingCart,
   },
   {
     title: "Products",
-    url: "#",
+    path: "/products",
     icon: Package,
   },
   {
     title: "Analytics",
-    url: "#",
+    path: "/analytics",
     icon: BarChart3,
   },
   {
     title: "Customers",
-    url: "#",
+    path: "/customers",
     icon: Users,
   },
   {
     title: "Settings",
-    url: "#",
+    path: "/settings",
     icon: Settings,
   },
 ]
 
 export function AppSidebar() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const { tiendanubeStatus, loading } = useTiendanubeStatus()
+
+  const handleNavigation = (path: string) => {
+    router.push(path)
+  }
+
+  const isActive = (path: string) => {
+    if (path === "/") {
+      return pathname === "/"
+    }
+    return pathname.startsWith(path)
+  }
+
+  const hasTiendanubeError = !loading && tiendanubeStatus && !tiendanubeStatus.status
+
   return (
     <Sidebar collapsible="icon">
       <SidebarHeader>
@@ -69,11 +88,17 @@ export function AppSidebar() {
             <SidebarMenu>
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={item.title === "Overview"} tooltip={item.title}>
-                    <a href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </a>
+                  <SidebarMenuButton
+                    isActive={isActive(item.path)}
+                    tooltip={item.title}
+                    onClick={() => handleNavigation(item.path)}
+                    className="relative"
+                  >
+                    <item.icon />
+                    <span>{item.title}</span>
+                    {item.title === "Settings" && hasTiendanubeError && (
+                      <div className="absolute -top-1 -right-1 h-3 w-3 bg-red-500 rounded-full" />
+                    )}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

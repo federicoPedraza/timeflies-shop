@@ -28,5 +28,10 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     access_token: data.access_token,
     user_id: data.user_id,
+    message: 'Access token obtained successfully. Please add TIENDANUBE_ACCESS_TOKEN and TIENDANUBE_USER_ID to your .env file.',
+    env_variables: {
+      TIENDANUBE_ACCESS_TOKEN: data.access_token,
+      TIENDANUBE_USER_ID: data.user_id,
+    }
   });
 }
