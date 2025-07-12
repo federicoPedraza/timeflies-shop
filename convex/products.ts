@@ -7,6 +7,18 @@ export const syncTiendanubeProducts = mutation({
     products: v.array(v.object({
       tiendanube_id: v.number(),
       tiendanube_product_id: v.number(),
+      // Basic product info
+      name: v.union(v.string(), v.null()),
+      description: v.union(v.string(), v.null()),
+      handle: v.union(v.string(), v.null()),
+      seo_title: v.union(v.string(), v.null()),
+      seo_description: v.union(v.string(), v.null()),
+      published: v.union(v.boolean(), v.null()),
+      free_shipping: v.union(v.boolean(), v.null()),
+      video_url: v.union(v.string(), v.null()),
+      tags: v.union(v.string(), v.null()),
+      brand: v.union(v.string(), v.null()),
+      // Variant info (from first variant)
       price: v.union(v.number(), v.null()),
       promotional_price: v.union(v.number(), v.null()),
       stock: v.number(),
@@ -39,7 +51,7 @@ export const syncTiendanubeProducts = mutation({
 
         if (existingTiendanubeProduct) {
           // Actualizar producto existente en tiendanube_products
-          await ctx.db.patch(existingTiendanubeProduct._id, {
+          const updateData: any = {
             price: product.price,
             promotional_price: product.promotional_price,
             stock: product.stock,
@@ -47,7 +59,21 @@ export const syncTiendanubeProducts = mutation({
             tiendanube_sku: product.tiendanube_sku,
             cost: product.cost,
             updated_at: product.updated_at,
-          });
+          };
+
+          // Only update new fields if they are provided
+          if (product.name !== undefined) updateData.name = product.name;
+          if (product.description !== undefined) updateData.description = product.description;
+          if (product.handle !== undefined) updateData.handle = product.handle;
+          if (product.seo_title !== undefined) updateData.seo_title = product.seo_title;
+          if (product.seo_description !== undefined) updateData.seo_description = product.seo_description;
+          if (product.published !== undefined) updateData.published = product.published;
+          if (product.free_shipping !== undefined) updateData.free_shipping = product.free_shipping;
+          if (product.video_url !== undefined) updateData.video_url = product.video_url;
+          if (product.tags !== undefined) updateData.tags = product.tags;
+          if (product.brand !== undefined) updateData.brand = product.brand;
+
+          await ctx.db.patch(existingTiendanubeProduct._id, updateData);
           results.updated++;
         } else {
           // Agregar nuevo producto en tiendanube_products
@@ -67,6 +93,68 @@ export const syncTiendanubeProducts = mutation({
     }
 
     console.log(`✅ [Sync TiendaNube] Sincronización completada: ${results.added} agregados, ${results.updated} actualizados, ${results.errors} errores`);
+    return results;
+  },
+});
+
+// Función para sincronizar imágenes de productos de TiendaNube
+export const syncTiendanubeProductImages = mutation({
+  args: {
+    images: v.array(v.object({
+      tiendanube_id: v.number(),
+      product_id: v.number(),
+      src: v.string(),
+      position: v.number(),
+      alt: v.union(v.string(), v.null()),
+      created_at: v.string(),
+      updated_at: v.string(),
+      added_at: v.number(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    console.log(`🔄 [Sync TiendaNube Images] Iniciando sincronización de ${args.images.length} imágenes`);
+
+    const results = {
+      added: 0,
+      updated: 0,
+      errors: 0,
+      errors_details: [] as string[],
+    };
+
+    for (const image of args.images) {
+      try {
+        // Buscar si la imagen ya existe
+        const existingImage = await ctx.db
+          .query("tiendanube_product_images")
+          .filter((q) => q.eq(q.field("tiendanube_id"), image.tiendanube_id))
+          .first();
+
+        if (existingImage) {
+          // Actualizar imagen existente
+          await ctx.db.patch(existingImage._id, {
+            src: image.src,
+            position: image.position,
+            alt: image.alt,
+            updated_at: image.updated_at,
+          });
+          results.updated++;
+        } else {
+          // Agregar nueva imagen
+          await ctx.db.insert("tiendanube_product_images", {
+            ...image,
+            added_at: Date.now(),
+          });
+          results.added++;
+        }
+
+      } catch (error) {
+        console.error(`❌ [Sync TiendaNube Images] Error procesando imagen ${image.tiendanube_id}:`, error);
+        results.errors++;
+        results.errors_details.push(`Imagen ${image.tiendanube_id}: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      }
+    }
+
+    console.log(`✅ [Sync TiendaNube Images] Sincronización completada: ${results.added} agregadas, ${results.updated} actualizadas, ${results.errors} errores`);
     return results;
   },
 });
@@ -373,6 +461,18 @@ export const createTiendanubeProduct = mutation({
     product: v.object({
       tiendanube_id: v.number(),
       tiendanube_product_id: v.number(),
+      // Basic product info
+      name: v.union(v.string(), v.null()),
+      description: v.union(v.string(), v.null()),
+      handle: v.union(v.string(), v.null()),
+      seo_title: v.union(v.string(), v.null()),
+      seo_description: v.union(v.string(), v.null()),
+      published: v.union(v.boolean(), v.null()),
+      free_shipping: v.union(v.boolean(), v.null()),
+      video_url: v.union(v.string(), v.null()),
+      tags: v.union(v.string(), v.null()),
+      brand: v.union(v.string(), v.null()),
+      // Variant info (from first variant)
       price: v.union(v.number(), v.null()),
       promotional_price: v.union(v.number(), v.null()),
       stock: v.number(),
@@ -480,6 +580,16 @@ export const updateProductFromWebhook = mutation({
   args: {
     productId: v.number(),
     updates: v.object({
+      name: v.union(v.string(), v.null()),
+      description: v.union(v.string(), v.null()),
+      handle: v.union(v.string(), v.null()),
+      seo_title: v.union(v.string(), v.null()),
+      seo_description: v.union(v.string(), v.null()),
+      published: v.union(v.boolean(), v.null()),
+      free_shipping: v.union(v.boolean(), v.null()),
+      video_url: v.union(v.string(), v.null()),
+      tags: v.union(v.string(), v.null()),
+      brand: v.union(v.string(), v.null()),
       price: v.union(v.number(), v.null()),
       promotional_price: v.union(v.number(), v.null()),
       stock: v.number(),
@@ -537,6 +647,216 @@ export const getRecentWebhookLogs = query({
         processedAt: log.processedAt,
         createdAt: log.createdAt,
       })),
+      hasMore,
+    };
+  },
+});
+
+// Función para obtener imágenes de un producto específico
+export const getProductImages = query({
+  args: {
+    productId: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const images = await ctx.db
+      .query("tiendanube_product_images")
+      .filter((q) => q.eq(q.field("product_id"), args.productId))
+      .order("asc")
+      .collect();
+
+    return images;
+  },
+});
+
+// Función para obtener todos los productos con datos transformados para el UI
+export const getProductsWithProviderData = query({
+  args: {},
+  handler: async (ctx) => {
+    const tiendanubeProducts = await ctx.db.query("tiendanube_products").collect();
+
+    // Transformar los datos al formato requerido por el UI
+    const productsWithDetails = await Promise.all(tiendanubeProducts.map(async (product) => {
+      // Fetch images for this product
+      const productImages = await ctx.db
+        .query("tiendanube_product_images")
+        .filter((q) => q.eq(q.field("product_id"), product.tiendanube_id))
+        .order("asc")
+        .collect();
+
+      // Extract image URLs
+      const imageUrls = productImages.map(img => img.src);
+
+      // Calcular precio promocional si existe
+      const hasPromotionalPrice = product.promotional_price !== null && product.promotional_price > 0;
+      const displayPrice = hasPromotionalPrice ? product.promotional_price! : (product.price || 0);
+      const compareAtPrice = hasPromotionalPrice ? product.price : null;
+
+      // Determinar estado del stock
+      const lowStockThreshold = 5; // Valor por defecto
+      let stockStatus: "in_stock" | "low_stock" | "out_of_stock" = "in_stock";
+      if (product.stock === 0) {
+        stockStatus = "out_of_stock";
+      } else if (product.stock <= lowStockThreshold) {
+        stockStatus = "low_stock";
+      }
+
+      // Determinar estado del producto
+      let status: "active" | "inactive" | "discontinued" = "active";
+      if (product.stock === 0) {
+        status = "inactive";
+      }
+
+      // Calcular margen de ganancia
+      const costPrice = product.cost || 0;
+      const profitMargin = displayPrice > 0 ? ((displayPrice - costPrice) / displayPrice) * 100 : 0;
+
+      return {
+        id: product._id,
+        provider: "tiendanube" as const,
+        providerProductId: product.tiendanube_id.toString(),
+        sku: product.tiendanube_sku || `TF-${product.tiendanube_id}`,
+        name: product.name || `Product ${product.tiendanube_id}`,
+        description: product.description || `Product description for ${product.tiendanube_id}`,
+        category: "Clocks", // Default category
+        subcategory: "Wall Clocks", // Default subcategory
+        price: displayPrice,
+        compareAtPrice: compareAtPrice,
+        costPrice: costPrice,
+        stockQuantity: product.stock,
+        lowStockThreshold: lowStockThreshold,
+        status: status,
+        images: imageUrls.length > 0 ? imageUrls : ["/placeholder.svg"], // Use actual images or fallback to placeholder
+        weight: product.weight || 999,
+        dimensions: {
+          length: 999,
+          width: 999,
+          height: 999,
+        },
+        materials: ["mocked"], // Placeholder materials
+        features: ["mocked"], // Placeholder features
+        warranty: "mocked", // Placeholder warranty
+        brand: product.brand || "Timeflies",
+        createdAt: product.created_at,
+        updatedAt: product.updated_at,
+        tags: product.tags ? product.tags.split(',').map(tag => tag.trim()) : ["mocked"],
+        profitMargin: profitMargin,
+        stockStatus: stockStatus,
+        // Additional detailed fields
+        handle: product.handle || null,
+        seo_title: product.seo_title || null,
+        seo_description: product.seo_description || null,
+        published: product.published || null,
+        free_shipping: product.free_shipping || null,
+        video_url: product.video_url || null,
+      };
+    }));
+
+    return productsWithDetails;
+  },
+});
+
+// Query to get product sales stats (number of orders per product)
+export const getProductSalesStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const orders = await ctx.db.query("tiendanube_orders").collect();
+    // Only consider paid orders
+    const paidOrders = orders.filter(order => order.payment_status === "paid");
+    const orderCountByProduct: Record<string, number> = {};
+
+    for (const order of paidOrders) {
+      try {
+        const productsData = JSON.parse(order.products);
+        // Use a Set to avoid double-counting a product in the same order
+        const productIdsInOrder = new Set<string>();
+        for (const product of productsData) {
+          const productId = product.id || product.product_id;
+          if (!productId) continue;
+          productIdsInOrder.add(productId.toString());
+        }
+        for (const productId of productIdsInOrder) {
+          orderCountByProduct[productId] = (orderCountByProduct[productId] || 0) + 1;
+        }
+      } catch (error) {
+        // Ignore orders with invalid product data
+        continue;
+      }
+    }
+    return orderCountByProduct;
+  },
+});
+
+// Función para obtener IDs internos para logs de webhooks
+export const getWebhookLogsWithInternalIds = query({
+  args: {
+    limit: v.optional(v.number()),
+    skip: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 5;
+    const skip = args.skip || 0;
+
+    const logs = await ctx.db
+      .query("webhook_logs")
+      .order("desc")
+      .collect();
+
+    const paginatedLogs = logs.slice(skip, skip + limit);
+    const hasMore = logs.length > skip + limit;
+
+    // Enriquecer logs con IDs internos
+    const enrichedLogs = await Promise.all(paginatedLogs.map(async (log) => {
+      let internalId = null;
+      let internalType = null;
+
+      if (log.productId) {
+        // Buscar producto por tiendanube_id
+        const product = await ctx.db
+          .query("tiendanube_products")
+          .filter((q) => q.eq(q.field("tiendanube_id"), log.productId))
+          .first();
+
+        if (product) {
+          internalId = product._id;
+          internalType = "product";
+        }
+      } else if (log.event.startsWith("order/") || log.event.startsWith("fulfillment/")) {
+        // Para eventos de órdenes, necesitamos extraer el order ID del payload
+        try {
+          const payload = JSON.parse(log.payload);
+          const orderId = payload.id || payload.order_id;
+
+          if (orderId) {
+            const order = await ctx.db
+              .query("tiendanube_orders")
+              .withIndex("by_tiendanube_id", (q) => q.eq("tiendanube_id", orderId))
+              .first();
+
+            if (order) {
+              internalId = order._id;
+              internalType = "order";
+            }
+          }
+        } catch (error) {
+          console.error("Error parsing webhook payload:", error);
+        }
+      }
+
+      return {
+        id: log._id,
+        event: log.event,
+        storeId: log.storeId,
+        productId: log.productId,
+        status: log.status,
+        processedAt: log.processedAt,
+        createdAt: log.createdAt,
+        internalId,
+        internalType,
+      };
+    }));
+
+    return {
+      logs: enrichedLogs,
       hasMore,
     };
   },

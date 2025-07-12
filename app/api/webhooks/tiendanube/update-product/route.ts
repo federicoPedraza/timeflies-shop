@@ -67,9 +67,32 @@ export async function POST(request: NextRequest) {
     // Extraer datos de la primera variante (asumiendo que es la principal)
     const variant = productData.variants?.[0];
 
+    // Get the primary language name (prefer Spanish, then English, then Portuguese)
+    const name = productData.name?.es || productData.name?.en || productData.name?.pt || null;
+
+    // Get description in the same language preference
+    const description = productData.description ?
+      (productData.description.es || productData.description.en || productData.description.pt) : null;
+
+    // Get handle in the same language preference
+    const handle = productData.handle ?
+      (productData.handle.es || productData.handle.en || productData.handle.pt) : null;
+
     const productUpdate = {
       tiendanube_id: productId,
       tiendanube_product_id: productId,
+      // Basic product info
+      name: name,
+      description: description,
+      handle: handle,
+      seo_title: productData.seo_title || null,
+      seo_description: productData.seo_description || null,
+      published: productData.published ?? null,
+      free_shipping: productData.free_shipping ?? null,
+      video_url: productData.video_url || null,
+      tags: productData.tags || null,
+      brand: productData.brand || null,
+      // Variant info (from first variant)
       price: variant?.price ? parseFloat(variant.price) : null,
       promotional_price: variant?.promotional_price ? parseFloat(variant.promotional_price) : null,
       stock: variant?.stock || 0,

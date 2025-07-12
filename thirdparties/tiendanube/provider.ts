@@ -15,6 +15,20 @@ export interface TiendanubeVariant {
   cost: string;
   created_at: string;
   updated_at: string;
+  values?: Array<{ [key: string]: string }>;
+  depth?: string | null;
+  height?: string | null;
+  width?: string | null;
+}
+
+export interface TiendanubeProductImage {
+  id: number;
+  src: string;
+  position: number;
+  product_id: number;
+  created_at: string;
+  updated_at: string;
+  alt?: string;
 }
 
 export interface TiendanubeProduct {
@@ -24,9 +38,44 @@ export interface TiendanubeProduct {
     es: string;
     pt: string;
   };
+  description?: {
+    en: string;
+    es: string;
+    pt: string;
+  };
+  handle?: {
+    en: string;
+    es: string;
+    pt: string;
+  };
+  seo_title?: string | {
+    en?: string;
+    es?: string;
+    pt?: string;
+  };
+  seo_description?: string | {
+    en?: string;
+    es?: string;
+    pt?: string;
+  };
+  published?: boolean;
+  free_shipping?: boolean;
+  video_url?: string;
+  tags?: string;
+  brand?: string | null;
   created_at: string;
   updated_at: string;
   variants: TiendanubeVariant[];
+  images?: TiendanubeProductImage[];
+  attributes?: Array<{ [key: string]: string }>;
+  categories?: Array<{
+    id: number;
+    name: { en: string; es: string; pt: string };
+    description?: { en: string; es: string; pt: string };
+    handle?: { en: string; es: string; pt: string };
+    created_at: string;
+    updated_at: string;
+  }>;
 }
 
 export class TiendanubeProvider extends Provider {
@@ -55,6 +104,9 @@ export class TiendanubeProvider extends Provider {
     const perPage = 50; // Máximo permitido por TiendaNube
 
     try {
+      // First, get all product IDs from the listing endpoint
+      const productIds: number[] = [];
+
       while (true) {
         const response = await this.client.getProducts({ page, per_page: perPage });
         const products = response.data as TiendanubeProduct[];
@@ -63,28 +115,46 @@ export class TiendanubeProvider extends Provider {
           break;
         }
 
-        // Log de la respuesta raw de TiendaNube para debugging
-        if (page === 1) {
-          console.log('🔍 [TiendaNube Provider] Raw API response (first 2 products):');
-          products.slice(0, 2).forEach((product, index) => {
-            console.log(`📦 [TiendaNube Provider] Raw product ${index + 1}:`, JSON.stringify(product, null, 2));
-          });
-        }
+        // Extract product IDs
+        productIds.push(...products.map(p => p.id));
 
-        // Convertir productos de TiendaNube al formato estándar
-        const convertedProducts = products.map(product => this.convertToStandardProduct(product));
-        allProducts.push(...convertedProducts);
-
-        // Verificar si hay más páginas
+        // Check if there are more pages
         const totalCount = response.headers['x-total-count'];
-        if (totalCount && allProducts.length >= parseInt(totalCount)) {
+        if (totalCount && productIds.length >= parseInt(totalCount)) {
           break;
         }
 
         page++;
       }
 
-      return allProducts;
+      console.log(`📦 [TiendaNube Provider] Found ${productIds.length} products, fetching detailed information...`);
+
+      // Now fetch detailed information for each product
+      const detailedProducts: Product[] = [];
+      const batchSize = 10; // Process in batches to avoid overwhelming the API
+
+      for (let i = 0; i < productIds.length; i += batchSize) {
+        const batch = productIds.slice(i, i + batchSize);
+        const batchPromises = batch.map(async (productId) => {
+          try {
+            const detailedProduct = await this.getProduct(productId);
+            if (detailedProduct) {
+              return detailedProduct;
+            }
+          } catch (error) {
+            console.error(`❌ [TiendaNube Provider] Error fetching detailed product ${productId}:`, error);
+          }
+          return null;
+        });
+
+        const batchResults = await Promise.all(batchPromises);
+        const validProducts = batchResults.filter(p => p !== null) as Product[];
+        detailedProducts.push(...validProducts);
+
+        console.log(`📦 [TiendaNube Provider] Processed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(productIds.length / batchSize)}: ${validProducts.length} products`);
+      }
+
+      return detailedProducts;
     } catch (error) {
       console.error('Error obteniendo productos de TiendaNube:', error);
       throw new Error(`Error obteniendo productos de TiendaNube: ${error instanceof Error ? error.message : 'Error desconocido'}`);
@@ -111,6 +181,20 @@ export class TiendanubeProvider extends Provider {
     }
   }
 
+  async getProductImages(productId: string | number): Promise<TiendanubeProductImage[]> {
+    if (!this.validateConfig()) {
+      throw new Error('Configuración de TiendaNube inválida');
+    }
+
+    try {
+      const response = await this.client.request<TiendanubeProductImage[]>(`/products/${productId}/images`);
+      return response.data || [];
+    } catch (error) {
+      console.error(`Error obteniendo imágenes del producto ${productId} de TiendaNube:`, error);
+      return [];
+    }
+  }
+
   private convertToStandardProduct(tiendanubeProduct: TiendanubeProduct): Product {
     // Obtener la primera variante (asumiendo que es la principal)
     const variant = tiendanubeProduct.variants?.[0];
@@ -119,9 +203,38 @@ export class TiendanubeProvider extends Provider {
       console.warn(`⚠️ [TiendaNube Provider] Product ${tiendanubeProduct.id} has no variants`);
     }
 
+    // Get the primary language name (prefer Spanish, then English, then Portuguese)
+    const name = tiendanubeProduct.name.es || tiendanubeProduct.name.en || tiendanubeProduct.name.pt || 'Sin nombre';
+
+    // Get description in the same language preference
+    const description = tiendanubeProduct.description ?
+      (tiendanubeProduct.description.es || tiendanubeProduct.description.en || tiendanubeProduct.description.pt) : null;
+
+    // Get handle in the same language preference
+    const handle = tiendanubeProduct.handle ?
+      (tiendanubeProduct.handle.es || tiendanubeProduct.handle.en || tiendanubeProduct.handle.pt) : null;
+
+    // Get SEO fields - they come as language objects from Tiendanube
+    const seo_title = tiendanubeProduct.seo_title ?
+      (typeof tiendanubeProduct.seo_title === 'string' ? tiendanubeProduct.seo_title :
+       tiendanubeProduct.seo_title.es || tiendanubeProduct.seo_title.en || tiendanubeProduct.seo_title.pt || null) : null;
+
+    const seo_description = tiendanubeProduct.seo_description ?
+      (typeof tiendanubeProduct.seo_description === 'string' ? tiendanubeProduct.seo_description :
+       tiendanubeProduct.seo_description.es || tiendanubeProduct.seo_description.en || tiendanubeProduct.seo_description.pt || null) : null;
+
     const converted = {
       id: tiendanubeProduct.id,
-      name: tiendanubeProduct.name.es || tiendanubeProduct.name.en || tiendanubeProduct.name.pt || 'Sin nombre',
+      name,
+      description,
+      handle,
+      seo_title: seo_title,
+      seo_description: seo_description,
+      published: tiendanubeProduct.published ?? null,
+      free_shipping: tiendanubeProduct.free_shipping ?? null,
+      video_url: tiendanubeProduct.video_url || null,
+      tags: tiendanubeProduct.tags || null,
+      brand: tiendanubeProduct.brand || null,
       sku: variant?.sku || undefined,
       price: variant?.price ? parseFloat(variant.price) : undefined,
       stock: variant?.stock || 0,
@@ -138,24 +251,24 @@ export class TiendanubeProvider extends Provider {
 
     // Log de conversión para debugging (solo para los primeros productos)
     if (tiendanubeProduct.id <= 2) {
-      console.log(`🔄 [TiendaNube Provider] Converting product ${tiendanubeProduct.id}:`);
+      console.log(`🔄 [TiendaNube Provider] Converting detailed product ${tiendanubeProduct.id}:`);
       console.log(`   Original product:`, {
         id: tiendanubeProduct.id,
         name: tiendanubeProduct.name,
+        description: tiendanubeProduct.description,
+        handle: tiendanubeProduct.handle,
+        seo_title: tiendanubeProduct.seo_title,
+        published: tiendanubeProduct.published,
         variants_count: tiendanubeProduct.variants?.length || 0,
+        images_count: tiendanubeProduct.images?.length || 0,
       });
-      console.log(`   Original variant:`, variant ? {
-        id: variant.id,
-        sku: variant.sku,
-        price: variant.price,
-        stock: variant.stock,
-        cost: variant.cost,
-      } : 'No variant found');
       console.log(`   Converted:`, {
         id: converted.id,
         name: converted.name,
-        sku: converted.sku,
-        tiendanube_sku: converted.tiendanube_sku,
+        description: converted.description,
+        handle: converted.handle,
+        seo_title: converted.seo_title,
+        published: converted.published,
         price: converted.price,
         stock: converted.stock,
         cost: converted.cost,

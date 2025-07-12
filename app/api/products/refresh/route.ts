@@ -98,16 +98,28 @@ export async function POST(request: NextRequest) {
 
     // Convertir productos al formato de la base de datos
     const dbProducts = products.map(product => ({
-      tiendanube_id: product.tiendanube_id,
-      tiendanube_product_id: product.tiendanube_product_id,
+      tiendanube_id: product.tiendanube_id!,
+      tiendanube_product_id: product.tiendanube_product_id!,
+      // Basic product info
+      name: product.name ?? null,
+      description: product.description ?? null,
+      handle: product.handle ?? null,
+      seo_title: product.seo_title ?? null,
+      seo_description: product.seo_description ?? null,
+      published: product.published ?? null,
+      free_shipping: product.free_shipping ?? null,
+      video_url: product.video_url ?? null,
+      tags: product.tags ?? null,
+      brand: product.brand ?? null,
+      // Variant info (from first variant)
       price: product.price ?? null,
       promotional_price: product.promotional_price ?? null,
       stock: product.stock ?? 0,
       weight: product.weight ?? null,
       tiendanube_sku: product.tiendanube_sku ?? null,
       cost: product.cost ?? null,
-      created_at: product.created_at,
-      updated_at: product.updated_at,
+      created_at: product.created_at!,
+      updated_at: product.updated_at!,
       added_at: Date.now(),
     }));
 
@@ -118,9 +130,43 @@ export async function POST(request: NextRequest) {
       storeId: Number(userId)
     });
 
+    // Fetch and sync product images
+    console.log('🖼️ [Products Refresh] Fetching and syncing product images...');
+    const allImages: any[] = [];
+
+    for (const product of products) {
+      try {
+        if (product.tiendanube_id) {
+          const images = await providerInstance.getProductImages(product.tiendanube_id);
+          const dbImages = images.map(image => ({
+            tiendanube_id: image.id,
+            product_id: image.product_id,
+            src: image.src,
+            position: image.position,
+            alt: Array.isArray(image.alt) ? null : (image.alt || null),
+            created_at: image.created_at,
+            updated_at: image.updated_at,
+            added_at: Date.now(),
+          }));
+          allImages.push(...dbImages);
+        }
+      } catch (error) {
+        console.error(`❌ [Products Refresh] Error fetching images for product ${product.tiendanube_id}:`, error);
+      }
+    }
+
+    // Sync images to database
+    let imageSyncResult: { added: number; updated: number; errors: number; errors_details: string[] } = { added: 0, updated: 0, errors: 0, errors_details: [] };
+    if (allImages.length > 0) {
+      console.log(`🖼️ [Products Refresh] Syncing ${allImages.length} images to database...`);
+      imageSyncResult = await convex.mutation(api.products.syncTiendanubeProductImages, {
+        images: allImages
+      });
+    }
+
     // Limpiar productos obsoletos
     console.log('🧹 [Products Refresh] Cleaning up obsolete products...');
-    const currentProductIds = products.map(p => p.tiendanube_id);
+    const currentProductIds = products.map(p => p.tiendanube_id!).filter(id => id !== undefined);
     const cleanupResult = await convex.mutation(api.products.cleanupTiendanubeProducts, {
       currentProductIds
     });
@@ -132,14 +178,18 @@ export async function POST(request: NextRequest) {
       success: true,
       provider,
       sync: syncResult,
+      imageSync: imageSyncResult,
       cleanup: cleanupResult,
       stats,
       summary: {
         total_products: products.length,
+        total_images: allImages.length,
         added: syncResult.added,
         updated: syncResult.updated,
+        images_added: imageSyncResult.added,
+        images_updated: imageSyncResult.updated,
         deleted: cleanupResult.deleted,
-        errors: syncResult.errors + cleanupResult.errors
+        errors: syncResult.errors + cleanupResult.errors + imageSyncResult.errors
       }
     };
 

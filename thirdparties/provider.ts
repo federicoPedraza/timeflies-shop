@@ -1,9 +1,27 @@
 export interface Product {
   id: string | number;
   name: string;
+  description?: string | null;
+  handle?: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  published?: boolean | null;
+  free_shipping?: boolean | null;
+  video_url?: string | null;
+  tags?: string | null;
+  brand?: string | null;
   sku?: string;
   price?: number;
   stock?: number;
+  // Tiendanube specific fields
+  tiendanube_id?: number;
+  tiendanube_product_id?: number;
+  tiendanube_sku?: string | null;
+  promotional_price?: number | null;
+  weight?: number | null;
+  cost?: number | null;
+  created_at?: string;
+  updated_at?: string;
   [key: string]: any; // Para propiedades adicionales específicas del proveedor
 }
 

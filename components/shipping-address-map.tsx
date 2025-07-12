@@ -60,7 +60,17 @@ export function ShippingAddressMap({ address }: ShippingAddressMapProps) {
     setMounted(true)
   }, [])
 
-  const fullAddress = `${address.street}${address.number ? ' ' + address.number : ''}, ${address.city}, ${address.state} ${address.zipCode}, ${address.country}`
+  // Construct full address with proper filtering of empty values
+  const addressParts = [
+    address.street,
+    address.number,
+    address.city,
+    address.state,
+    address.zipCode,
+    address.country
+  ].filter(part => part && part.trim());
+
+  const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : 'Default Location';
 
   // Compose address lines with metadata for styling
   const addressLines: Array<{ text: string; hasValue: boolean; type: string }> = [];

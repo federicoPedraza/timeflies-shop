@@ -1,6 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import {
   Package,
   ShoppingCart,
@@ -13,11 +14,13 @@ import {
   Clock,
   Tag,
   Archive,
-  FileText
+  FileText,
+  Eye
 } from "lucide-react"
 import { useWebhookLogs } from "@/hooks/use-webhook-logs"
 import { formatDistanceToNow } from "date-fns"
 import { useState } from "react";
+import Link from "next/link";
 
 const eventIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   // Product events
@@ -52,9 +55,9 @@ const getEventIcon = (event: string) => {
 
 const eventMessageMap: Record<string, (id?: number | null) => string> = {
   // Product events
-  "product/created": (id) => `New product created${id ? ` (ID: ${id})` : ''}`,
-  "product/updated": (id) => `Product updated${id ? ` (ID: ${id})` : ''}`,
-  "product/deleted": (id) => `Product deleted${id ? ` (ID: ${id})` : ''}`,
+  "product/created": () => "New product created",
+  "product/updated": () => "Product updated",
+  "product/deleted": () => "Product deleted",
   // Order events
   "order/created": () => "New order received",
   "order/updated": () => "Order updated",
@@ -161,11 +164,11 @@ export function RecentActivity() {
           ) : (
             logs.map((log) => {
               const Icon = getEventIcon(log.event);
-              const message = getEventMessage(log.event, log.productId);
+              const message = getEventMessage(log.event);
               const timeAgo = formatDistanceToNow(new Date(log.processedAt), { addSuffix: true });
 
               return (
-                <div key={log.id} className="flex items-center space-x-3">
+                <div key={log.id} className="flex items-center space-x-3 group">
                   <div className={`p-2 rounded-full ${getEventColor(log.event, log.status)}`}>
                     <Icon className="h-3 w-3 text-white" />
                   </div>
@@ -173,6 +176,18 @@ export function RecentActivity() {
                     <p className="text-sm font-medium">{message}</p>
                     <p className="text-xs text-muted-foreground">{timeAgo}</p>
                   </div>
+                  {log.internalId && (
+                    <Link href={log.internalType === "product" ? `/products/${log.internalId}` : `/orders/${log.internalId}`}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 opacity-50 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               );
             })

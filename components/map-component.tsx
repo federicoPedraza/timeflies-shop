@@ -21,6 +21,64 @@ const fixLeafletIcon = () => {
   }
 }
 
+// Cache for geocoding results to avoid repeated requests
+const geocodeCache = new Map<string, [number, number]>()
+
+// Geocoding function moved outside component
+const geocodeAddress = async (address: string): Promise<[number, number]> => {
+  // Validate address input
+  if (!address || address.trim() === '' || address === 'Default Location') {
+    console.warn('Invalid or empty address provided:', address)
+    return [40.7128, -74.0060] // Default to New York City
+  }
+
+  const trimmedAddress = address.trim()
+
+  // Check cache first
+  if (geocodeCache.has(trimmedAddress)) {
+    console.log('Using cached geocoding result for:', trimmedAddress)
+    return geocodeCache.get(trimmedAddress)!
+  }
+
+  try {
+    console.log('Geocoding address:', trimmedAddress)
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmedAddress)}&limit=1`
+    )
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    if (data && data.length > 0) {
+      const lat = parseFloat(data[0].lat)
+      const lon = parseFloat(data[0].lon)
+
+      if (isNaN(lat) || isNaN(lon)) {
+        throw new Error('Invalid coordinates returned from geocoding service')
+      }
+
+      console.log('Geocoding successful:', { address: trimmedAddress, lat, lon })
+      const result: [number, number] = [lat, lon]
+
+      // Cache the result
+      geocodeCache.set(trimmedAddress, result)
+
+      return result
+    } else {
+      console.warn('No coordinates found for address:', trimmedAddress)
+      // Return a default location instead of throwing an error
+      return [40.7128, -74.0060]
+    }
+  } catch (error) {
+    console.error('Geocoding error:', error)
+    // Return a default location if geocoding fails
+    return [40.7128, -74.0060]
+  }
+}
+
 export default function MapComponent({ address }: MapComponentProps) {
   const [coordinates, setCoordinates] = useState<[number, number] | null>(null)
   const [loading, setLoading] = useState(true)
@@ -45,25 +103,6 @@ export default function MapComponent({ address }: MapComponentProps) {
         setLoading(false)
       })
   }, [address])
-
-  const geocodeAddress = async (address: string): Promise<[number, number]> => {
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
-      )
-      const data = await response.json()
-
-      if (data && data.length > 0) {
-        return [parseFloat(data[0].lat), parseFloat(data[0].lon)]
-      } else {
-        throw new Error('No coordinates found')
-      }
-    } catch (error) {
-      console.error('Geocoding error:', error)
-      // Return a default location if geocoding fails
-      return [40.7128, -74.0060]
-    }
-  }
 
   if (loading) {
     return (
