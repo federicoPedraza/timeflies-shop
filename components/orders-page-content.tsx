@@ -31,6 +31,7 @@ export type Order = {
   orderStatus: "pending" | "confirmed" | "processing" | "shipped" | "delivered" | "cancelled"
   paymentStatus: "pending" | "paid" | "failed" | "refunded" | "partial"
   paymentMethod: "credit_card" | "paypal" | "bank_transfer" | "cash_on_delivery"
+  shippingStatus: "unshipped" | "shipped" | "unpacked" | "delivered"
   totalAmount: number
   shippingCost: number
   taxAmount: number
@@ -47,6 +48,10 @@ export type Order = {
     zipCode: string
     country: string
   }
+  shippingInfo?: {
+    consumer_cost: number
+    merchant_cost: number
+  } | null
   notes?: string
 }
 
@@ -62,7 +67,6 @@ export function OrdersPageContent({ initialOrderId, initialSearch }: OrdersPageC
   const [orders, setOrders] = useState<Order[]>([])
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
-  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([])
   const [inspectedOrder, setInspectedOrder] = useState<Order | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
 
@@ -115,10 +119,6 @@ export function OrdersPageContent({ initialOrderId, initialSearch }: OrdersPageC
     setIsDetailsOpen(true)
   }, [])
 
-  const handleSelectedOrdersChange = useCallback((selectedIds: string[]) => {
-    setSelectedOrderIds(selectedIds)
-  }, [])
-
   const handleInspectedOrderChange = useCallback((order: Order | null) => {
     setInspectedOrder(order)
     updateURL(order?.id || null)
@@ -126,10 +126,8 @@ export function OrdersPageContent({ initialOrderId, initialSearch }: OrdersPageC
 
   // Get the order for display - prioritize inspected order over selected order
   const orderForDisplay = useMemo(() => {
-    return inspectedOrder || (selectedOrderIds.length > 0
-      ? orders.find(order => order.id === selectedOrderIds[0]) || null
-      : null)
-  }, [inspectedOrder, selectedOrderIds, orders])
+    return inspectedOrder || null
+  }, [inspectedOrder])
 
   if (ordersFromDB === undefined) {
     return (
@@ -157,7 +155,6 @@ export function OrdersPageContent({ initialOrderId, initialSearch }: OrdersPageC
       <OrdersDataTable
         orders={filteredOrders}
         onViewOrder={handleViewOrder}
-        onSelectedOrdersChange={handleSelectedOrdersChange}
         onInspectedOrderChange={handleInspectedOrderChange}
         filtersComponent={
           <OrdersFilters

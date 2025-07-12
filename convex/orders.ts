@@ -407,7 +407,25 @@ export const getOrdersWithProviderData = query({
       const subtotal = parseFloat(order.subtotal || "0") / 100;
       const total = parseFloat(order.total || "0") / 100;
       const discount = parseFloat(order.discount || "0") / 100;
-      const shippingCost = 0; // Mock data - no disponible en TiendaNube
+      let shippingCost = 0;
+      let shippingInfo = null;
+
+      // Parsear información de envío
+      if (order.previous_total_shipping_cost) {
+        try {
+          const shippingData = JSON.parse(order.previous_total_shipping_cost);
+          if (shippingData && typeof shippingData === 'object') {
+            shippingCost = (shippingData.consumer_cost || 0) / 100;
+            shippingInfo = {
+              consumer_cost: (shippingData.consumer_cost || 0) / 100,
+              merchant_cost: (shippingData.merchant_cost || 0) / 100,
+            };
+          }
+        } catch (error) {
+          console.error("Error parsing shipping cost for order", order.tiendanube_id, error);
+        }
+      }
+
       const taxAmount = total - subtotal - shippingCost + discount;
 
       // Mapear estados
@@ -449,6 +467,19 @@ export const getOrdersWithProviderData = query({
         "debit_card": "credit_card",
       };
 
+      const shippingStatusMap: { [key: string]: string } = {
+        "pending": "unshipped",
+        "unpacked": "unpacked",
+        "unfulfilled": "unshipped",
+        "packed": "shipped",
+        "ready_to_ship": "shipped",
+        "shipped": "shipped",
+        "in_transit": "shipped",
+        "out_for_delivery": "unpacked",
+        "delivered": "delivered",
+        "fulfilled": "delivered",
+      };
+
       return {
         id: order._id,
         provider: "tiendanube" as const,
@@ -464,12 +495,14 @@ export const getOrdersWithProviderData = query({
         orderStatus: orderStatusMap[order.status] || "pending" as any,
         paymentStatus: paymentStatusMap[order.payment_status] || "pending" as any,
         paymentMethod: paymentMethodMap[order.gateway] || "credit_card" as any,
+        shippingStatus: shippingStatusMap[order.shipping_status] || "unshipped" as any,
         totalAmount: total,
         shippingCost,
         taxAmount: Math.max(0, taxAmount),
         discountAmount: discount,
         orderDate: order.created_at,
         shippingAddress,
+        shippingInfo,
         notes: ((order.note ?? order.owner_note) || undefined) as string | undefined,
       };
     });

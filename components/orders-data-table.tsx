@@ -3,9 +3,9 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Chip } from "@/components/ui/chip"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -24,7 +24,6 @@ import { capitalizeFirstLetter } from "@/lib/utils"
 interface OrdersDataTableProps {
   orders: Order[]
   onViewOrder: (order: Order) => void
-  onSelectedOrdersChange?: (selectedOrderIds: string[]) => void
   onInspectedOrderChange?: (order: Order | null) => void
   filtersComponent?: React.ReactNode
   collapseOnOrderInspect?: boolean
@@ -43,6 +42,9 @@ const statusColors = {
   failed: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
   refunded: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
   partial: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+  // Shipping Status
+  unshipped: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
+  unpacked: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
 }
 
 const paymentMethodLabels = {
@@ -55,7 +57,6 @@ const paymentMethodLabels = {
 export function OrdersDataTable({
   orders,
   onViewOrder,
-  onSelectedOrdersChange,
   onInspectedOrderChange,
   filtersComponent,
   collapseOnOrderInspect = false,
@@ -63,13 +64,13 @@ export function OrdersDataTable({
 
   // Set responsive defaults - hide less important columns on smaller screens
   const [visibleColumns, setVisibleColumns] = useState({
-    select: false,
-    orderId: false,
+    orderId: true,
     customer: true,
-    products: false, // Hide by default - can be toggled
+    products: true,
     orderStatus: true,
-    paymentStatus: false, // Hide by default - can be toggled
-    paymentMethod: false, // Hide by default - can be toggled
+    paymentStatus: true,
+    paymentMethod: true,
+    shippingStatus: true,
     totalAmount: true,
     orderDate: true,
     providerItemId: true,
@@ -80,10 +81,7 @@ export function OrdersDataTable({
   // State to track which orders have expanded product lists
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set())
 
-  // State to track selected orders (for bulk operations)
-  const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set())
-
-    // State to track inspected order (for row click)
+  // State to track inspected order (for row click)
   const [inspectedOrder, setInspectedOrder] = useState<Order | null>(null)
 
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -94,14 +92,6 @@ export function OrdersDataTable({
       setIsCollapsed(true)
     }
   }, [inspectedOrder, collapseOnOrderInspect])
-  // Removed: const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(false)
-
-  // Notify parent component when selection changes
-  useEffect(() => {
-    if (onSelectedOrdersChange) {
-      onSelectedOrdersChange(Array.from(selectedOrders))
-    }
-  }, [selectedOrders, onSelectedOrdersChange])
 
   // Notify parent component when inspected order changes
   useEffect(() => {
@@ -123,27 +113,14 @@ export function OrdersDataTable({
     })
   }
 
-  // Function to handle individual order selection (checkbox)
-  const toggleOrderSelection = (orderId: string) => {
-    setSelectedOrders(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(orderId)) {
-        newSet.delete(orderId)
-      } else {
-        newSet.add(orderId)
-      }
-      return newSet
-    })
-  }
-
   // Function to handle row click for inspection
   const handleRowClick = (order: Order, event: React.MouseEvent) => {
-    // Don't trigger row click if clicking on checkbox or action buttons
+    // Don't trigger row click if clicking on buttons or interactive elements
     const target = event.target as HTMLElement
-    if (target.closest('input[type="checkbox"]') ||
-        target.closest('button') ||
+    if (target.closest('button') ||
         target.closest('[role="button"]') ||
-        target.closest('select')) {
+        target.closest('select') ||
+        target.closest('[data-copy-button]')) {
       return
     }
 
@@ -155,41 +132,31 @@ export function OrdersDataTable({
     }
   }
 
-  // Function to handle select all
-  const toggleSelectAll = () => {
-    if (selectedOrders.size === orders.length) {
-      // If all are selected, deselect all
-      setSelectedOrders(new Set())
-    } else {
-      // If not all are selected, select all
-      setSelectedOrders(new Set(orders.map(order => order.id)))
-    }
-  }
+  // Function to copy order ID to clipboard
+  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null)
 
-  // Function to copy order number to clipboard
-  const [copiedOrderNumber, setCopiedOrderNumber] = useState<string | null>(null)
+  const copyOrderId = async (orderId: string, event: React.MouseEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
 
-
-
-  const copyOrderNumber = async (orderNumber: string) => {
     try {
-      await navigator.clipboard.writeText(orderNumber)
-      setCopiedOrderNumber(orderNumber)
+      await navigator.clipboard.writeText(orderId)
+      setCopiedOrderId(orderId)
       setTimeout(() => {
-        setCopiedOrderNumber((prev) => (prev === orderNumber ? null : prev))
-      }, 1000)
+        setCopiedOrderId((prev) => (prev === orderId ? null : prev))
+      }, 2000)
     } catch (err) {
-      console.error('Failed to copy order number:', err)
+      console.error('Failed to copy order ID:', err)
     }
   }
 
-  // Check if all orders are selected
-  const isAllSelected = selectedOrders.size === orders.length && orders.length > 0
+  // Function to truncate order ID for display
+  const truncateOrderId = (orderId: string, maxLength: number = 12) => {
+    if (orderId.length <= maxLength) return orderId
+    return orderId.substring(0, maxLength) + "..."
+  }
 
-  // Check if some orders are selected (for indeterminate state)
-  const isSomeSelected = selectedOrders.size > 0 && selectedOrders.size < orders.length
-
-    // Set columns based on screen size
+  // Set columns based on screen size
   useEffect(() => {
     const updateColumnVisibility = () => {
       const isLargeScreen = window.innerWidth >= 1024
@@ -197,13 +164,13 @@ export function OrdersDataTable({
       const isSmallScreen = window.innerWidth < 640
 
       setVisibleColumns({
-        select: true,
         orderId: true,
         customer: true,
         products: isLargeScreen,
         orderStatus: true,
         paymentStatus: isMediumScreen,
         paymentMethod: isLargeScreen,
+        shippingStatus: true,
         totalAmount: true,
         orderDate: !isSmallScreen,
         providerItemId: true,
@@ -256,6 +223,10 @@ export function OrdersDataTable({
     if (sortField === "provider") {
       aValue = a.provider
       bValue = b.provider
+    }
+    if (sortField === "shippingStatus") {
+      aValue = a.shippingStatus
+      bValue = b.shippingStatus
     }
 
     if (aValue && bValue && aValue < bValue) return sortDirection === "asc" ? -1 : 1
@@ -331,7 +302,6 @@ export function OrdersDataTable({
     )
   }
 
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -339,11 +309,6 @@ export function OrdersDataTable({
           <div>
             <CardTitle>
               Orders ({orders.length})
-              {selectedOrders.size > 0 && (
-                <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({selectedOrders.size} selected)
-                </span>
-              )}
               {inspectedOrder && (
                 <span className="ml-2 text-sm font-normal text-blue-600 dark:text-blue-400">
                   • Inspecting {inspectedOrder.orderNumber}
@@ -374,13 +339,13 @@ export function OrdersDataTable({
                     checked={value}
                     onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, [key]: checked }))}
                   >
-                    {key === "select" && "Select"}
                     {key === "orderId" && "Order ID"}
                     {key === "customer" && "Customer"}
                     {key === "products" && "Products"}
                     {key === "orderStatus" && "Order Status"}
                     {key === "paymentStatus" && "Payment Status"}
                     {key === "paymentMethod" && "Payment Method"}
+                    {key === "shippingStatus" && "Shipping Status"}
                     {key === "totalAmount" && "Total Amount"}
                     {key === "orderDate" && "Order Date"}
                     {key === "providerItemId" && "Provider Item ID"}
@@ -425,21 +390,8 @@ export function OrdersDataTable({
               <Table className="w-full">
                 <TableHeader>
                   <TableRow>
-                    {visibleColumns.select && (
-                      <TableHead className="min-w-[50px] text-center">
-                        <input
-                          type="checkbox"
-                          checked={isAllSelected}
-                          ref={(el) => {
-                            if (el) el.indeterminate = isSomeSelected
-                          }}
-                          onChange={toggleSelectAll}
-                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                        />
-                      </TableHead>
-                    )}
                     {visibleColumns.orderId && (
-                      <TableHead className="min-w-[140px] text-center">
+                      <TableHead className="w-[140px] text-center">
                         <Button
                           variant="ghost"
                           onClick={() => handleSort("id")}
@@ -462,6 +414,18 @@ export function OrdersDataTable({
                     {visibleColumns.orderStatus && <TableHead className="min-w-[150px]">Order Status</TableHead>}
                     {visibleColumns.paymentStatus && <TableHead className="min-w-[150px]">Payment Status</TableHead>}
                     {visibleColumns.paymentMethod && <TableHead className="min-w-[160px]">Payment Method</TableHead>}
+                    {visibleColumns.shippingStatus && (
+                      <TableHead className="min-w-[150px]">
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleSort("shippingStatus")}
+                          className="h-auto p-0 font-semibold"
+                        >
+                          Shipping Status
+                          <ArrowUpDown className="ml-2 h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                    )}
                     {visibleColumns.totalAmount && (
                       <TableHead className="min-w-[120px]">
                         <Button
@@ -518,27 +482,34 @@ export function OrdersDataTable({
                     <TableRow
                       key={order.id}
                       className={`cursor-pointer hover:bg-muted/30 transition-colors ${
-                        selectedOrders.has(order.id) ? "bg-muted/50" : ""
-                      } ${
                         inspectedOrder?.id === order.id ? "bg-blue-50 dark:bg-blue-950/20 border-l-4 border-l-blue-500" : ""
                       }`}
                       onClick={(event) => handleRowClick(order, event)}
                     >
-                      {visibleColumns.select && (
-                        <TableCell className="text-center">
-                          <input
-                            type="checkbox"
-                            checked={selectedOrders.has(order.id)}
-                            onChange={() => toggleOrderSelection(order.id)}
-                            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                          />
-                        </TableCell>
-                      )}
                       {visibleColumns.orderId && (
-                        <TableCell className="font-medium text-center group">
-                          <Chip variant="readonly" size="sm">
-                            {order.id}
-                          </Chip>
+                        <TableCell className="text-center w-[140px]">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <button
+                                data-copy-button
+                                onClick={(e) => copyOrderId(order.id, e)}
+                                className="inline-flex items-center gap-1 p-1 rounded hover:bg-muted/50 transition-colors group"
+                              >
+                                <Chip variant="readonly" size="sm" className="max-w-[100px]">
+                                  <span className="truncate">{truncateOrderId(order.id)}</span>
+                                </Chip>
+                                {copiedOrderId === order.id ? (
+                                  <Check className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <Copy className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                )}
+                              </button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="font-mono text-xs">{order.id}</p>
+                              <p className="text-xs text-muted-foreground">Click to copy</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
                       )}
                       {visibleColumns.customer && (
@@ -569,6 +540,13 @@ export function OrdersDataTable({
                         </TableCell>
                       )}
                       {visibleColumns.paymentMethod && <TableCell>{paymentMethodLabels[order.paymentMethod]}</TableCell>}
+                      {visibleColumns.shippingStatus && (
+                        <TableCell>
+                          <Chip variant="readonly" size="sm" className={statusColors[order.shippingStatus]}>
+                            {capitalizeFirstLetter(order.shippingStatus)}
+                          </Chip>
+                        </TableCell>
+                      )}
                       {visibleColumns.totalAmount && (
                         <TableCell className="font-medium">${order.totalAmount.toFixed(2)}</TableCell>
                       )}

@@ -50,6 +50,9 @@ const statusColors = {
   failed: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300",
   refunded: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
   partial: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
+  // Shipping Status
+  unshipped: "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300",
+  unpacked: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300",
 }
 
 const paymentMethodLabels = {
@@ -216,18 +219,55 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
           </Card>
         </div>
 
-        {/* Shipping Address */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <MapPin className="h-5 w-5" />
-              Shipping Address
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ShippingAddressMap address={order.shippingAddress} />
-          </CardContent>
-        </Card>
+        <div className="grid gap-6 md:grid-cols-2">
+          {/* Shipping Address */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Shipping Address
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ShippingAddressMap address={order.shippingAddress} />
+            </CardContent>
+          </Card>
+
+          {/* Shipping Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Truck className="h-5 w-5" />
+                Shipping Information
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Status:</span>
+                <Badge className={statusColors[order.shippingStatus]}>{capitalizeFirstLetter(order.shippingStatus)}</Badge>
+              </div>
+              {order.shippingInfo && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Customer Cost:</span>
+                    <span>${order.shippingInfo.consumer_cost.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Building className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Merchant Cost:</span>
+                    <span>${order.shippingInfo.merchant_cost.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+              {!order.shippingInfo && (
+                <div className="text-sm text-muted-foreground">
+                  No shipping cost information available
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Products - Collapsible */}
         <Card>
