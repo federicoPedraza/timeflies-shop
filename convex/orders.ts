@@ -363,6 +363,10 @@ export const getOrdersWithProviderData = query({
       // Parsear la dirección de envío
       let shippingAddress = {
         street: "Address not available",
+        number: "",
+        floor: "",
+        apartment: "",
+        neighborhood: "",
         city: "City not available",
         state: "State not available",
         zipCode: "Zip code not available",
@@ -373,9 +377,13 @@ export const getOrdersWithProviderData = query({
         const shippingData = JSON.parse(order.shipping_address);
         if (shippingData) {
           shippingAddress = {
-            street: shippingData.street || shippingData.address || "Address not available",
+            street: shippingData.address || shippingData.street || "Address not available",
+            number: shippingData.number || "",
+            floor: shippingData.floor || "",
+            apartment: shippingData.apartment || "",
+            neighborhood: shippingData.locality || shippingData.neighborhood || "",
             city: shippingData.city || "City not available",
-            state: shippingData.state || shippingData.province || "State not available",
+            state: shippingData.province || shippingData.state || "State not available",
             zipCode: shippingData.zipcode || shippingData.zip || "Zip code not available",
             country: shippingData.country || "Country not available",
           };

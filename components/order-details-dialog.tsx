@@ -28,6 +28,7 @@ import { format } from "date-fns"
 import type { Order } from "@/components/orders-page-content"
 import { capitalizeFirstLetter } from "@/lib/utils"
 import { useCallback } from "react"
+import { ShippingAddressMap } from "@/components/shipping-address-map"
 
 interface OrderDetailsDialogProps {
   order: Order | null
@@ -166,20 +167,7 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Building className="h-4 w-4 text-muted-foreground" />
-                {order.shippingAddress.street}
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
-              </div>
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-muted-foreground" />
-                {order.shippingAddress.country}
-              </div>
-            </div>
+            <ShippingAddressMap address={order.shippingAddress} />
           </CardContent>
         </Card>
 

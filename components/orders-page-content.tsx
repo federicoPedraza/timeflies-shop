@@ -38,6 +38,10 @@ export type Order = {
   orderDate: string
   shippingAddress: {
     street: string
+    number?: string
+    floor?: string
+    apartment?: string
+    neighborhood?: string
     city: string
     state: string
     zipCode: string

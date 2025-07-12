@@ -63,8 +63,8 @@ export function OrdersDataTable({
 
   // Set responsive defaults - hide less important columns on smaller screens
   const [visibleColumns, setVisibleColumns] = useState({
-    select: true,
-    orderId: true,
+    select: false,
+    orderId: false,
     customer: true,
     products: false, // Hide by default - can be toggled
     orderStatus: true,

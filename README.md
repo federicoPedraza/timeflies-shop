@@ -8,6 +8,7 @@ A comprehensive order management system for clock businesses with real-time sync
 - **Real-time Order Sync**: Automatically syncs orders from TiendaNube
 - **Advanced Filtering**: Filter orders by status, date, customer, and more
 - **Order Inspection**: Click on any order row to inspect details inline
+- **Interactive Shipping Maps**: View shipping addresses on interactive maps using OpenStreetMap
 - **URL-based Order Inspection**:
   - Navigate directly to `/orders?order=ORDER_ID` to inspect a specific order
   - Navigate to `/orders/ORDER_ID` to automatically redirect and inspect an order
@@ -52,15 +53,19 @@ The orders page supports direct URL access for order inspection:
 - **Shareable Links**: You can share URLs with order IDs to directly inspect specific orders
 - **Invalid ID Handling**: If an invalid order ID is provided, it's automatically removed from the URL
 
+## Interactive Maps
+
+The shipping address section now includes an interactive map visualizer:
+
+- **Show/Hide Map**: Click the "Show Map" button to display the shipping address location
+- **OpenStreetMap Integration**: Uses OpenStreetMap with Leaflet for free, open-source mapping
+- **Geocoding**: Automatically converts addresses to coordinates using Nominatim
+- **Responsive Design**: Maps adapt to different screen sizes
+- **No API Keys Required**: Completely free and open-source solution
+
 ## Tech Stack
 
 - **Frontend**: Next.js 14, React, TypeScript
 - **Backend**: Convex (real-time database)
 - **Styling**: Tailwind CSS, shadcn/ui components
-- **E-commerce Integration**: TiendaNube API
-
-## Development
-
-- **Type Checking**: `npx tsc --noEmit`
-- **Linting**: `npm run lint`
-- **Build**: `npm run build`
+- **Maps**: Leaflet with OpenStreetMap

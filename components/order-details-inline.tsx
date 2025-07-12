@@ -22,7 +22,8 @@ import {
   ShoppingCart,
   Share2,
   ExternalLink,
-  Search
+  Search,
+  Check
 } from "lucide-react"
 import { format } from "date-fns"
 import type { Order } from "@/components/orders-page-content"
@@ -30,6 +31,7 @@ import { capitalizeFirstLetter } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { useCallback } from "react"
 import { Button } from "@/components/ui/button"
+import { ShippingAddressMap } from "@/components/shipping-address-map"
 
 interface OrderDetailsInlineProps {
   order: Order | null
@@ -104,66 +106,61 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
   return (
     <Card className="w-full">
       <CardHeader>
-        <div className="flex items-center gap-2 justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            <CardTitle className="text-xl">Order Details - {order.orderNumber}</CardTitle>
+            <span className="text-lg font-semibold">Order Details - {order.orderNumber}</span>
             <Badge className={statusColors[order.orderStatus]}>{capitalizeFirstLetter(order.orderStatus)}</Badge>
           </div>
           {showShareAndOpenButtons && (
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
               <Button
                 variant="outline"
+                size="sm"
                 onClick={handleShare}
-                type="button"
+                className="flex items-center gap-2"
               >
-                <Share2 className="mr-1" />
-                {copied ? "Copied!" : "Share"}
-              </Button>
-              <Button
-                variant="default"
-                onClick={() => router.push(`/orders/${order.id}`)}
-                type="button"
-              >
-                <ExternalLink className="mr-1" />
-                Inspect
+                {copied ? <Check className="h-3 w-3" /> : <Share2 className="h-3 w-3" />}
+                {copied ? 'Copied!' : 'Share'}
               </Button>
               <Button
                 variant="outline"
-                onClick={handleOpenTiendaNubeAdmin}
-                type="button"
+                size="sm"
+                onClick={handleSearchCustomer}
+                className="flex items-center gap-2"
               >
-                <ExternalLink className="mr-1" />
-                View Order in TiendaNube
+                <Search className="h-3 w-3" />
+                Search Customer
               </Button>
+              {order.providerOrderId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleOpenTiendaNubeAdmin}
+                  className="flex items-center gap-2"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  View in TiendaNube
+                </Button>
+              )}
             </div>
           )}
         </div>
-        <p className="text-sm text-muted-foreground flex items-center gap-2">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Calendar className="h-4 w-4" />
           Placed on {format(new Date(order.orderDate), "dd 'of' MMMM, yyyy 'at' h:mm a")}
-        </p>
+        </div>
       </CardHeader>
+
       <CardContent className="space-y-6">
         <div className="grid gap-6 md:grid-cols-2">
           {/* Customer Information */}
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Customer Information
-                </CardTitle>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSearchCustomer}
-                  className="flex items-center gap-2"
-                >
-                  <Search className="h-4 w-4" />
-                  Search Orders
-                </Button>
-              </div>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Customer Information
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
@@ -178,7 +175,7 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Phone:</span> {order.customer.phone}
               </div>
-              {order.customer?.id && onOpenTiendaNubeCustomer && (
+              {onOpenTiendaNubeCustomer && order.customer?.id && (
                 <div className="pt-2">
                   <Button
                     variant="outline"
@@ -228,20 +225,7 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Building className="h-4 w-4 text-muted-foreground" />
-                {order.shippingAddress.street}
-              </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
-              </div>
-              <div className="flex items-center gap-2">
-                <Truck className="h-4 w-4 text-muted-foreground" />
-                {order.shippingAddress.country}
-              </div>
-            </div>
+            <ShippingAddressMap address={order.shippingAddress} />
           </CardContent>
         </Card>
 
