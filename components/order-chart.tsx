@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 
@@ -13,7 +14,7 @@ const data = [
   { name: "Jul", orders: 40, revenue: 2800 },
 ]
 
-export function OrderChart() {
+export const OrderChart = memo(function OrderChart() {
   return (
     <Card>
       <CardHeader>
@@ -27,10 +28,10 @@ export function OrderChart() {
             <XAxis dataKey="name" />
             <YAxis />
             <Tooltip />
-            <Bar dataKey="orders" fill="#8884d8" />
+            <Bar dataKey="orders" fill="#8884d8" animationDuration={0} />
           </BarChart>
         </ResponsiveContainer>
       </CardContent>
     </Card>
   )
-}
+})

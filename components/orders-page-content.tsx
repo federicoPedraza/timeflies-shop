@@ -1,12 +1,12 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useQuery } from "convex/react"
 import { api } from "../convex/_generated/api"
 import { OrdersFilters } from "@/components/orders-filters-new"
 import { OrdersDataTable } from "@/components/orders-data-table"
 import { OrderDetailsDialog } from "@/components/order-details-dialog"
-import { OrderChart } from "@/components/order-chart"
+import { OrderDetailsInline } from "@/components/order-details-inline"
 
 export type Order = {
   id: string
@@ -240,6 +240,8 @@ export function OrdersPageContent() {
   const [orders, setOrders] = useState<Order[]>([])
   const [filteredOrders, setFilteredOrders] = useState<Order[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([])
+  const [inspectedOrder, setInspectedOrder] = useState<Order | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
 
   // Use database data if available, otherwise use sample data
@@ -255,22 +257,27 @@ export function OrdersPageContent() {
     }
   }, [ordersFromDB])
 
-  const handleViewOrder = (order: Order) => {
+  const handleViewOrder = useCallback((order: Order) => {
     setSelectedOrder(order)
     setIsDetailsOpen(true)
-  }
+  }, [])
 
-  const handleUpdateOrderStatus = (orderId: string, newStatus: Order["orderStatus"]) => {
-    const updatedOrders = orders.map((order) => (order.id === orderId ? { ...order, orderStatus: newStatus } : order))
-    setOrders(updatedOrders)
-    setFilteredOrders(updatedOrders)
-  }
 
-  const handleUpdatePaymentStatus = (orderId: string, newStatus: Order["paymentStatus"]) => {
-    const updatedOrders = orders.map((order) => (order.id === orderId ? { ...order, paymentStatus: newStatus } : order))
-    setOrders(updatedOrders)
-    setFilteredOrders(updatedOrders)
-  }
+
+  const handleSelectedOrdersChange = useCallback((selectedIds: string[]) => {
+    setSelectedOrderIds(selectedIds)
+  }, [])
+
+  const handleInspectedOrderChange = useCallback((order: Order | null) => {
+    setInspectedOrder(order)
+  }, [])
+
+  // Get the order for display - prioritize inspected order over selected order
+  const orderForDisplay = useMemo(() => {
+    return inspectedOrder || (selectedOrderIds.length > 0
+      ? orders.find(order => order.id === selectedOrderIds[0]) || null
+      : null)
+  }, [inspectedOrder, selectedOrderIds, orders])
 
   if (ordersFromDB === undefined) {
     return (
@@ -294,16 +301,23 @@ export function OrdersPageContent() {
         </p>
       </div>
 
-      {/* Order Chart */}
-      <OrderChart />
+                  {/* Orders Section with Filters and Table */}
+      <OrdersDataTable
+        orders={filteredOrders}
+        onViewOrder={handleViewOrder}
+        onSelectedOrdersChange={handleSelectedOrdersChange}
+        onInspectedOrderChange={handleInspectedOrderChange}
+        filtersComponent={
+          <OrdersFilters orders={orders} onFilteredOrdersChange={setFilteredOrders} />
+        }
+      />
 
-      {/* Filters */}
-      <OrdersFilters orders={orders} onFilteredOrdersChange={setFilteredOrders} />
+      {/* Inline Order Details */}
+      {orderForDisplay && (
+        <OrderDetailsInline order={orderForDisplay} />
+      )}
 
-      {/* Data Table */}
-      <OrdersDataTable orders={filteredOrders} onViewOrder={handleViewOrder} onUpdateOrderStatus={handleUpdateOrderStatus} onUpdatePaymentStatus={handleUpdatePaymentStatus} />
-
-      {/* Details Dialog */}
+      {/* Details Dialog (kept for backward compatibility with action button) */}
       <OrderDetailsDialog order={selectedOrder} isOpen={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} />
     </div>
   )
