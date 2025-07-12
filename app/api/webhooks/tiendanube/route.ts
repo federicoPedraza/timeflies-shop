@@ -3,8 +3,6 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../../convex/_generated/api';
 import crypto from 'crypto';
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
 // Función para obtener el body raw como Buffer
 async function getRawBody(request: NextRequest): Promise<Buffer> {
   const chunks: Buffer[] = [];
@@ -57,7 +55,7 @@ function generateIdempotencyKey(storeId: number, event: string, id: number): str
 }
 
 // Función para manejar webhooks requeridos por LGPD
-async function handleRequiredWebhooks(payload: { event: string; store_id: number; [key: string]: unknown }) {
+async function handleRequiredWebhooks(payload: { event: string; store_id: number; [key: string]: unknown }, convex: ConvexHttpClient) {
   const { event, store_id } = payload;
 
   switch (event) {
@@ -103,7 +101,17 @@ export async function POST(request: NextRequest) {
   console.log(`\n🚀 [${requestId}] Webhook recibido - ${new Date().toISOString()}`);
   console.log(`📡 Headers:`, Object.fromEntries(request.headers.entries()));
 
-    try {
+  try {
+    // Initialize Convex client
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) {
+      console.log('❌ [Webhooks] NEXT_PUBLIC_CONVEX_URL not configured');
+      return NextResponse.json(
+        { error: 'NEXT_PUBLIC_CONVEX_URL not configured' },
+        { status: 500 }
+      );
+    }
+    const convex = new ConvexHttpClient(convexUrl);
     // Obtener el body raw como Buffer para verificación HMAC
     const rawBody = await getRawBody(request);
     const hmacHeader = request.headers.get('x-linkedstore-hmac-sha256') ||
@@ -153,7 +161,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Manejar webhooks requeridos por LGPD
-    const isRequiredWebhook = await handleRequiredWebhooks(payload);
+    const isRequiredWebhook = await handleRequiredWebhooks(payload, convex);
     if (isRequiredWebhook) {
       const processingTime = Date.now() - startTime;
       console.log(`✅ [${requestId}] Webhook LGPD procesado en ${processingTime}ms`);

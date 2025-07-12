@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../../convex/_generated/api';
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
 export async function POST(request: NextRequest) {
   console.log('🔄 [Sync Orders] Endpoint called');
 
   try {
+    // Initialize Convex client
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) {
+      console.log('❌ [Sync Orders] NEXT_PUBLIC_CONVEX_URL not configured');
+      return NextResponse.json(
+        { error: 'NEXT_PUBLIC_CONVEX_URL not configured' },
+        { status: 500 }
+      );
+    }
+    const convex = new ConvexHttpClient(convexUrl);
     const body = await request.json();
     const { provider = 'tiendanube' } = body;
 

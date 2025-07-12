@@ -3,12 +3,20 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../../convex/_generated/api';
 import { TiendanubeProvider } from '../../../../thirdparties/tiendanube/provider';
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
 export async function POST(request: NextRequest) {
   console.log('🔄 [Products Refresh] Endpoint called');
 
   try {
+    // Initialize Convex client
+    const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;
+    if (!convexUrl) {
+      console.log('❌ [Products Refresh] NEXT_PUBLIC_CONVEX_URL not configured');
+      return NextResponse.json(
+        { error: 'NEXT_PUBLIC_CONVEX_URL not configured' },
+        { status: 500 }
+      );
+    }
+    const convex = new ConvexHttpClient(convexUrl);
     // Obtener el user_id del .env o del header como fallback
     let userId = process.env.TIENDANUBE_USER_ID;
     if (!userId) {
