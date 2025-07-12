@@ -13,11 +13,9 @@ export async function POST(request: NextRequest) {
 
     // Simular el payload de un webhook de Tiendanube
     const webhookPayload = {
-      type: 'product',
+      store_id: storeId,
       event: event,
-      data: {
-        id: productId
-      }
+      id: productId
     };
 
     // Enviar el webhook al endpoint real

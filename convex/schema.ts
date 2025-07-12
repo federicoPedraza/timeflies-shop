@@ -16,11 +16,6 @@ export default defineSchema({
     added_at: v.number(),
     store_id: v.number(),
   }),
-  "products": defineTable({
-    sku: v.string(),
-    provider: v.literal("tiendanube"),
-    item_id: v.number(),
-  }).index("by_provider_item_id", ["provider", "item_id"]),
   "tiendanube_orders": defineTable({
     tiendanube_id: v.number(),
     store_id: v.number(),
@@ -98,19 +93,6 @@ export default defineSchema({
     customer_visit: v.string(), // JSON string
     added_at: v.number(),
   }).index("by_tiendanube_id", ["tiendanube_id"]),
-  "orders": defineTable({
-    provider: v.literal("tiendanube"),
-    product_id: v.id("products"),
-    provider_order_id: v.string(),
-    created_at: v.string(),
-    updated_at: v.string(),
-    state: v.union(
-      v.literal("unpaid"),
-      v.literal("paid"),
-      v.literal("pending"),
-      v.literal("cancelled")
-    ),
-  }).index("by_provider_order_id", ["provider", "provider_order_id"]),
   "webhook_logs": defineTable({
     idempotencyKey: v.string(),
     storeId: v.number(),

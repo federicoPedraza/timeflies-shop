@@ -1,30 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-export const countUniqueProducts = query({
-  args: {
-    userId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    // Obtener todos los productos del usuario
-    const products = await ctx.db
-      .query("products")
-      .filter((q) => q.eq(q.field("provider"), "tiendanube"))
-      .collect();
-
-    // Crear un Set para contar SKUs únicos
-    const uniqueSkus = new Set<string>();
-
-    products.forEach(product => {
-      if (product.sku) {
-        uniqueSkus.add(product.sku);
-      }
-    });
-
-    return uniqueSkus.size;
-  },
-});
-
 // Función para sincronizar productos de TiendaNube
 export const syncTiendanubeProducts = mutation({
   args: {
@@ -51,7 +27,6 @@ export const syncTiendanubeProducts = mutation({
       updated: 0,
       errors: 0,
       errors_details: [] as string[],
-      products_synced: 0
     };
 
     for (const product of args.products) {
@@ -84,29 +59,6 @@ export const syncTiendanubeProducts = mutation({
           results.added++;
         }
 
-                        // Verificar si existe en la tabla products usando el índice único
-        const existingProduct = await ctx.db
-          .query("products")
-          .withIndex("by_provider_item_id", (q) =>
-            q.eq("provider", "tiendanube").eq("item_id", product.tiendanube_id)
-          )
-          .first();
-
-        if (!existingProduct) {
-          // Generar SKU único para TimeFlies
-          const timefliesSku = await generateTimefliesSku(ctx);
-
-          // Crear entrada en la tabla products
-          await ctx.db.insert("products", {
-            sku: timefliesSku,
-            provider: "tiendanube",
-            item_id: product.tiendanube_id,
-          });
-
-          console.log(`🆕 [Sync TiendaNube] Nuevo producto registrado en products: ${timefliesSku} (TiendaNube ID: ${product.tiendanube_id})`);
-          results.products_synced++;
-        }
-
       } catch (error) {
         console.error(`❌ [Sync TiendaNube] Error procesando producto ${product.tiendanube_id}:`, error);
         results.errors++;
@@ -114,31 +66,10 @@ export const syncTiendanubeProducts = mutation({
       }
     }
 
-    console.log(`✅ [Sync TiendaNube] Sincronización completada: ${results.added} agregados, ${results.updated} actualizados, ${results.products_synced} productos sincronizados, ${results.errors} errores`);
+    console.log(`✅ [Sync TiendaNube] Sincronización completada: ${results.added} agregados, ${results.updated} actualizados, ${results.errors} errores`);
     return results;
   },
 });
-
-// Función para generar SKU único de TimeFlies
-async function generateTimefliesSku(ctx: any): Promise<string> {
-  let counter = 1;
-  let sku: string;
-
-  do {
-    sku = `timeflies-${counter.toString().padStart(4, '0')}`;
-    const existingProduct = await ctx.db
-      .query("products")
-      .filter((q: any) => q.eq(q.field("sku"), sku))
-      .first();
-
-    if (!existingProduct) {
-      return sku;
-    }
-    counter++;
-  } while (counter <= 9999);
-
-  throw new Error("No se pudo generar un SKU único");
-}
 
 // Función para limpiar productos que ya no existen en TiendaNube
 export const cleanupTiendanubeProducts = mutation({
@@ -195,29 +126,74 @@ export const getSyncStats = query({
 export const getDashboardStats = query({
   args: {},
   handler: async (ctx) => {
-    // Obtener todos los productos de TiendaNube
+    // Obtener todos los productos de Tiendanube
     const tiendanubeProducts = await ctx.db.query("tiendanube_products").collect();
 
     // Debug: Log para verificar que la query se está ejecutando
     console.log(`📊 [getDashboardStats] Total productos: ${tiendanubeProducts.length}`);
+
+    // Debug: Verificar productos con costos
+    const productsWithCost = tiendanubeProducts.filter(p => p.cost !== null);
+    console.log(`📊 [getDashboardStats] Productos con costo: ${productsWithCost.length}`);
+    if (productsWithCost.length > 0) {
+      console.log(`📊 [getDashboardStats] Ejemplos de costos:`, productsWithCost.slice(0, 3).map(p => ({
+        id: p.tiendanube_id,
+        cost: p.cost,
+        price: p.price
+      })));
+    }
 
     // Contar productos activos (con stock > 0)
     const activeProducts = tiendanubeProducts.filter(product => product.stock > 0).length;
 
     console.log(`📊 [getDashboardStats] Productos activos: ${activeProducts}`);
 
-    // Calcular estadísticas adicionales
-    const totalRevenue = tiendanubeProducts.reduce((sum, product) => {
-      const price = product.promotional_price || product.price || 0;
-      return sum + (price * product.stock);
-    }, 0);
-
-    // Obtener estadísticas de órdenes
-    const orders = await ctx.db.query("orders").collect();
+    // Obtener todas las órdenes
+    const orders = await ctx.db.query("tiendanube_orders").collect();
     const totalOrders = orders.length;
-    const totalClocksSold = tiendanubeProducts.reduce((sum, product) => sum + product.stock, 0);
 
-    const result = {
+    // Calcular revenue total basado en órdenes pagadas
+    let totalRevenue = 0;
+    let totalClocksSold = 0;
+
+    // Filtrar solo órdenes pagadas
+    const paidOrders = orders.filter(order => order.payment_status === "paid");
+
+    console.log(`📊 [getDashboardStats] Órdenes pagadas: ${paidOrders.length} de ${totalOrders}`);
+
+    for (const order of paidOrders) {
+      try {
+        // Parsear los productos de la orden
+        const productsData = JSON.parse(order.products);
+
+        for (const product of productsData) {
+          const productId = product.id || product.product_id;
+          const quantity = product.quantity || 1;
+          const price = parseFloat(product.price || "0") / 100; // Convertir de centavos
+
+          // Buscar el producto en la base de datos para obtener el costo
+          const dbProduct = tiendanubeProducts.find(p => p.tiendanube_id === parseInt(productId));
+
+          if (dbProduct && dbProduct.cost) {
+            // Calcular revenue basado en el precio de venta (no el costo)
+            const revenue = price * quantity; // Revenue es el precio de venta, no la ganancia
+            totalRevenue += revenue;
+            totalClocksSold += quantity;
+          } else {
+            // Si no encontramos el producto o no tiene costo, usar el precio como revenue
+            totalRevenue += price * quantity;
+            totalClocksSold += quantity;
+          }
+        }
+      } catch (error) {
+        console.error(`❌ [getDashboardStats] Error procesando orden ${order.tiendanube_id}:`, error);
+        // Si hay error al parsear, usar el total de la orden
+        const orderTotal = parseFloat(order.total || "0") / 100;
+        totalRevenue += orderTotal;
+      }
+    }
+
+        const result = {
       activeProducts,
       totalRevenue: Math.round(totalRevenue * 100) / 100, // Redondear a 2 decimales
       totalOrders,
@@ -237,6 +213,120 @@ export const getDashboardStats = query({
   },
 });
 
+// Función para calcular tendencias reales basadas en datos históricos
+export const getTrends = query({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const oneMonthAgo = now - (30 * 24 * 60 * 60 * 1000); // 30 días atrás
+
+    // Obtener productos y órdenes
+    const products = await ctx.db.query("tiendanube_products").collect();
+    const orders = await ctx.db.query("tiendanube_orders").collect();
+
+    // Filtrar órdenes del mes actual y del mes anterior
+    const currentMonthOrders = orders.filter(order => order.added_at >= oneMonthAgo);
+    const previousMonthOrders = orders.filter(order =>
+      order.added_at >= oneMonthAgo - (30 * 24 * 60 * 60 * 1000) &&
+      order.added_at < oneMonthAgo
+    );
+
+    // Calcular métricas del mes actual
+    const currentPaidOrders = currentMonthOrders.filter(order => order.payment_status === "paid");
+        const currentRevenue = currentPaidOrders.reduce((sum, order) => {
+      try {
+        const productsData = JSON.parse(order.products);
+        return sum + productsData.reduce((orderSum: number, product: any) => {
+          const price = parseFloat(product.price || "0") / 100;
+          const quantity = product.quantity || 1;
+          return orderSum + (price * quantity);
+        }, 0);
+      } catch (error) {
+        return sum + parseFloat(order.total || "0") / 100;
+      }
+    }, 0);
+
+    const currentClocksSold = currentPaidOrders.reduce((sum, order) => {
+      try {
+        const productsData = JSON.parse(order.products);
+        return sum + productsData.reduce((orderSum: number, product: any) => {
+          return orderSum + (product.quantity || 1);
+        }, 0);
+      } catch (error) {
+        return sum;
+      }
+    }, 0);
+
+    const currentActiveProducts = products.filter(product =>
+      product.stock > 0 && product.added_at >= oneMonthAgo
+    ).length;
+
+    // Calcular métricas del mes anterior
+    const previousPaidOrders = previousMonthOrders.filter(order => order.payment_status === "paid");
+        const previousRevenue = previousPaidOrders.reduce((sum, order) => {
+      try {
+        const productsData = JSON.parse(order.products);
+        return sum + productsData.reduce((orderSum: number, product: any) => {
+          const price = parseFloat(product.price || "0") / 100;
+          const quantity = product.quantity || 1;
+          return orderSum + (price * quantity);
+        }, 0);
+      } catch (error) {
+        return sum + parseFloat(order.total || "0") / 100;
+      }
+    }, 0);
+
+    const previousClocksSold = previousPaidOrders.reduce((sum, order) => {
+      try {
+        const productsData = JSON.parse(order.products);
+        return sum + productsData.reduce((orderSum: number, product: any) => {
+          return orderSum + (product.quantity || 1);
+        }, 0);
+      } catch (error) {
+        return sum;
+      }
+    }, 0);
+
+    const previousActiveProducts = products.filter(product =>
+      product.stock > 0 &&
+      product.added_at >= oneMonthAgo - (30 * 24 * 60 * 60 * 1000) &&
+      product.added_at < oneMonthAgo
+    ).length;
+
+    // Calcular porcentajes de cambio
+    const calculatePercentageChange = (current: number, previous: number) => {
+      if (previous === 0) return current > 0 ? "+100%" : "0%";
+      const change = ((current - previous) / previous) * 100;
+      return `${change >= 0 ? "+" : ""}${change.toFixed(1)}%`;
+    };
+
+    const trends = {
+      revenue: calculatePercentageChange(currentRevenue, previousRevenue) + " from last month",
+      orders: calculatePercentageChange(currentPaidOrders.length, previousPaidOrders.length) + " from last month",
+      clocks: calculatePercentageChange(currentClocksSold, previousClocksSold) + " from last month",
+      products: calculatePercentageChange(currentActiveProducts, previousActiveProducts) + " from last month"
+    };
+
+    console.log(`📈 [getTrends] Tendencias calculadas:`, {
+      current: {
+        revenue: currentRevenue,
+        orders: currentPaidOrders.length,
+        clocks: currentClocksSold,
+        products: currentActiveProducts
+      },
+      previous: {
+        revenue: previousRevenue,
+        orders: previousPaidOrders.length,
+        clocks: previousClocksSold,
+        products: previousActiveProducts
+      },
+      trends
+    });
+
+    return trends;
+  },
+});
+
 // Función para obtener un producto por su ID de Tiendanube
 export const getProductByTiendanubeId = query({
   args: {
@@ -246,21 +336,6 @@ export const getProductByTiendanubeId = query({
     return await ctx.db
       .query("tiendanube_products")
       .filter((q) => q.eq(q.field("tiendanube_id"), args.tiendanubeId))
-      .first();
-  },
-});
-
-// Función para obtener un producto de la tabla products por su item_id
-export const getProductByItemId = query({
-  args: {
-    itemId: v.number(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("products")
-      .withIndex("by_provider_item_id", (q) =>
-        q.eq("provider", "tiendanube").eq("item_id", args.itemId)
-      )
       .first();
   },
 });
@@ -318,28 +393,6 @@ export const createTiendanubeProduct = mutation({
       store_id: args.storeId,
     });
 
-    // Verificar si existe en la tabla products usando el índice único
-    const existingProduct = await ctx.db
-      .query("products")
-      .withIndex("by_provider_item_id", (q) =>
-        q.eq("provider", "tiendanube").eq("item_id", args.product.tiendanube_id)
-      )
-      .first();
-
-    if (!existingProduct) {
-      // Generar SKU único para TimeFlies
-      const timefliesSku = await generateTimefliesSku(ctx);
-
-      // Crear entrada en la tabla products
-      await ctx.db.insert("products", {
-        sku: timefliesSku,
-        provider: "tiendanube",
-        item_id: args.product.tiendanube_id,
-      });
-
-      console.log(`🆕 [Create Tiendanube Product] Nuevo producto registrado en products: ${timefliesSku}`);
-    }
-
     console.log(`✅ [Create Tiendanube Product] Producto creado exitosamente`);
     return { success: true, productId };
   },
@@ -352,24 +405,6 @@ export const deleteTiendanubeProduct = mutation({
   },
   handler: async (ctx, args) => {
     console.log(`🗑️ [Delete Tiendanube Product] Eliminando producto ${args.productId}`);
-
-    // Obtener el producto antes de eliminarlo para poder eliminar también de la tabla products
-    const product = await ctx.db.get(args.productId);
-
-    if (product) {
-      // Eliminar de la tabla products si existe
-      const existingProduct = await ctx.db
-        .query("products")
-        .withIndex("by_provider_item_id", (q) =>
-          q.eq("provider", "tiendanube").eq("item_id", product.tiendanube_id)
-        )
-        .first();
-
-      if (existingProduct) {
-        await ctx.db.delete(existingProduct._id);
-        console.log(`🗑️ [Delete Tiendanube Product] Producto eliminado de tabla products también`);
-      }
-    }
 
     // Eliminar de tiendanube_products
     await ctx.db.delete(args.productId);
@@ -391,23 +426,10 @@ export const deleteAllProducts = mutation({
     let deletedCount = 0;
     for (const product of products) {
       try {
-        // Eliminar de la tabla products si existe
-        const existingProduct = await ctx.db
-          .query("products")
-          .withIndex("by_provider_item_id", (q) =>
-            q.eq("provider", "tiendanube").eq("item_id", product.tiendanube_id)
-          )
-          .first();
-
-        if (existingProduct) {
-          await ctx.db.delete(existingProduct._id);
-        }
-
-        // Eliminar de tiendanube_products
         await ctx.db.delete(product._id);
         deletedCount++;
       } catch (error) {
-        console.error(`❌ Error eliminando producto ${product.tiendanube_id}:`, error);
+        console.error(`❌ [Delete All Products] Error eliminando producto ${product._id}:`, error);
       }
     }
 
@@ -416,7 +438,7 @@ export const deleteAllProducts = mutation({
   },
 });
 
-// Función para registrar webhooks (idempotencia)
+// Función para registrar logs de webhooks
 export const logWebhook = mutation({
   args: {
     idempotencyKey: v.string(),
@@ -425,19 +447,13 @@ export const logWebhook = mutation({
     productId: v.union(v.number(), v.null()),
     payload: v.string(),
     processedAt: v.string(),
-    status: v.optional(v.string()),
+    status: v.string(),
   },
   handler: async (ctx, args) => {
-    console.log(`📝 [Log Webhook] Registrando webhook: ${args.idempotencyKey}`);
+    console.log(`📝 [Log Webhook] Registrando webhook: ${args.event} para store ${args.storeId}`);
 
     await ctx.db.insert("webhook_logs", {
-      idempotencyKey: args.idempotencyKey,
-      storeId: args.storeId,
-      event: args.event,
-      productId: args.productId,
-      payload: args.payload,
-      processedAt: args.processedAt,
-      status: args.status || "processed",
+      ...args,
       createdAt: Date.now(),
     });
 
@@ -446,7 +462,7 @@ export const logWebhook = mutation({
   },
 });
 
-// Función para verificar si un webhook ya fue procesado
+// Función para obtener logs de webhooks
 export const getWebhookLog = query({
   args: {
     idempotencyKey: v.string(),
@@ -459,341 +475,69 @@ export const getWebhookLog = query({
   },
 });
 
-// Función para upsertar un producto con datos completos
-export const upsertProduct = mutation({
-  args: {
-    productData: v.any(), // Usar v.any() para flexibilidad con la estructura de Tiendanube
-    storeId: v.number(),
-  },
-  handler: async (ctx, args) => {
-    console.log(`🔄 [Upsert Product] Procesando producto ${args.productData.id}`);
-
-    // Buscar si el producto ya existe
-    const existingProduct = await ctx.db
-      .query("tiendanube_products")
-      .filter((q) => q.eq(q.field("tiendanube_id"), args.productData.id))
-      .first();
-
-    const productUpdate = {
-      tiendanube_id: args.productData.id,
-      tiendanube_product_id: args.productData.id,
-      price: args.productData.price || null,
-      promotional_price: args.productData.promotional_price || null,
-      stock: args.productData.stock || 0,
-      weight: args.productData.weight || null,
-      tiendanube_sku: args.productData.sku || null,
-      cost: args.productData.cost || null,
-      created_at: args.productData.created_at,
-      updated_at: args.productData.updated_at,
-      store_id: args.storeId,
-    };
-
-    if (existingProduct) {
-      // Actualizar producto existente
-      await ctx.db.patch(existingProduct._id, productUpdate);
-      console.log(`✅ [Upsert Product] Producto actualizado: ${args.productData.id}`);
-      return { status: 'updated', productId: existingProduct._id };
-    } else {
-      // Crear nuevo producto
-      const newProductId = await ctx.db.insert("tiendanube_products", {
-        ...productUpdate,
-        added_at: Date.now(),
-      });
-
-      // Verificar si existe en la tabla products
-      const existingTimefliesProduct = await ctx.db
-        .query("products")
-        .filter((q) =>
-          q.and(
-            q.eq(q.field("provider"), "tiendanube"),
-            q.eq(q.field("item_id"), args.productData.id)
-          )
-        )
-        .first();
-
-      if (!existingTimefliesProduct) {
-        // Generar SKU único para TimeFlies
-        const timefliesSku = await generateTimefliesSku(ctx);
-
-        // Crear entrada en la tabla products
-        await ctx.db.insert("products", {
-          sku: timefliesSku,
-          provider: "tiendanube",
-          item_id: args.productData.id,
-        });
-
-        console.log(`🆕 [Upsert Product] Nuevo producto registrado en products: ${timefliesSku}`);
-      }
-
-      console.log(`✅ [Upsert Product] Producto creado: ${args.productData.id}`);
-      return { status: 'created', productId: newProductId };
-    }
-  },
-});
-
-// Función para upsertar un producto con datos básicos del webhook
-export const upsertProductBasic = mutation({
-  args: {
-    productId: v.number(),
-    event: v.string(),
-    storeId: v.number(),
-  },
-  handler: async (ctx, args) => {
-    console.log(`🔄 [Upsert Product Basic] Procesando producto ${args.productId}`);
-
-    // Buscar si el producto ya existe
-    const existingProduct = await ctx.db
-      .query("tiendanube_products")
-      .filter((q) => q.eq(q.field("tiendanube_id"), args.productId))
-      .first();
-
-    if (existingProduct) {
-      // Solo actualizar timestamp
-      await ctx.db.patch(existingProduct._id, {
-        updated_at: new Date().toISOString(),
-      });
-      console.log(`✅ [Upsert Product Basic] Producto actualizado: ${args.productId}`);
-      return { status: 'updated', productId: existingProduct._id };
-    } else {
-      // Crear producto básico
-      const newProductId = await ctx.db.insert("tiendanube_products", {
-        tiendanube_id: args.productId,
-        tiendanube_product_id: args.productId,
-        price: null,
-        promotional_price: null,
-        stock: 0,
-        weight: null,
-        tiendanube_sku: null,
-        cost: null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        added_at: Date.now(),
-        store_id: args.storeId,
-      });
-
-      console.log(`✅ [Upsert Product Basic] Producto básico creado: ${args.productId}`);
-      return { status: 'created', productId: newProductId };
-    }
-  },
-});
-
-// Función para eliminar un producto por ID
-export const deleteProduct = mutation({
-  args: {
-    productId: v.number(),
-  },
-  handler: async (ctx, args) => {
-    console.log(`🗑️ [Delete Product] Eliminando producto ${args.productId}`);
-
-    // Buscar el producto
-    const existingProduct = await ctx.db
-      .query("tiendanube_products")
-      .filter((q) => q.eq(q.field("tiendanube_id"), args.productId))
-      .first();
-
-    if (existingProduct) {
-      // Eliminar de la tabla products si existe
-      const existingTimefliesProduct = await ctx.db
-        .query("products")
-        .filter((q) =>
-          q.and(
-            q.eq(q.field("provider"), "tiendanube"),
-            q.eq(q.field("item_id"), args.productId)
-          )
-        )
-        .first();
-
-      if (existingTimefliesProduct) {
-        await ctx.db.delete(existingTimefliesProduct._id);
-        console.log(`🗑️ [Delete Product] Producto eliminado de tabla products también`);
-      }
-
-      // Eliminar de tiendanube_products
-      await ctx.db.delete(existingProduct._id);
-      console.log(`✅ [Delete Product] Producto eliminado: ${args.productId}`);
-      return { status: 'deleted', productId: existingProduct._id };
-    } else {
-      console.log(`ℹ️ [Delete Product] Producto no encontrado: ${args.productId}`);
-      return { status: 'not_found' };
-    }
-  },
-});
-
-// Función para actualizar productos existentes con store_id
-export const updateExistingProductsWithStoreId = mutation({
-  args: {
-    storeId: v.number(),
-  },
-  handler: async (ctx, args) => {
-    console.log(`🔄 [Update Existing Products] Actualizando productos existentes con store_id: ${args.storeId}`);
-
-    // Obtener todos los productos que no tienen store_id
-    const productsWithoutStoreId = await ctx.db
-      .query("tiendanube_products")
-      .filter((q) => q.eq(q.field("store_id"), undefined))
-      .collect();
-
-    console.log(`📦 [Update Existing Products] Encontrados ${productsWithoutStoreId.length} productos sin store_id`);
-
-    let updatedCount = 0;
-    for (const product of productsWithoutStoreId) {
-      try {
-        await ctx.db.patch(product._id, {
-          store_id: args.storeId,
-        });
-        updatedCount++;
-      } catch (error) {
-        console.error(`❌ [Update Existing Products] Error actualizando producto ${product.tiendanube_id}:`, error);
-      }
-    }
-
-    console.log(`✅ [Update Existing Products] ${updatedCount} productos actualizados exitosamente`);
-    return { success: true, updatedCount };
-  },
-});
-
-// Función para actualizar un producto con datos del webhook de TiendaNube
+// Función para actualizar producto desde webhook
 export const updateProductFromWebhook = mutation({
   args: {
     productId: v.number(),
-    productData: v.any(), // Datos del producto del webhook
-    storeId: v.number(),
+    updates: v.object({
+      price: v.union(v.number(), v.null()),
+      promotional_price: v.union(v.number(), v.null()),
+      stock: v.number(),
+      weight: v.union(v.number(), v.null()),
+      tiendanube_sku: v.union(v.string(), v.null()),
+      cost: v.union(v.number(), v.null()),
+      updated_at: v.string(),
+    }),
   },
   handler: async (ctx, args) => {
-    console.log(`🔄 [Update Product From Webhook] Procesando producto ${args.productId}`);
-    console.log(`📦 [Update Product From Webhook] ProductData recibido:`, JSON.stringify(args.productData, null, 2));
+    console.log(`🔄 [Update Product From Webhook] Actualizando producto ${args.productId}`);
 
-    // Buscar si el producto ya existe
+    // Buscar el producto en tiendanube_products
     const existingProduct = await ctx.db
       .query("tiendanube_products")
       .filter((q) => q.eq(q.field("tiendanube_id"), args.productId))
       .first();
 
-    console.log(`🔍 [Update Product From Webhook] Producto existente:`, existingProduct ? 'Sí' : 'No');
-
-    // Extraer datos del producto del webhook
-    // Los webhooks de TiendaNube pueden incluir datos del producto en diferentes formatos
-    const rawPrice = args.productData.price || args.productData.variants?.[0]?.price;
-    const rawPromotionalPrice = args.productData.promotional_price || args.productData.variants?.[0]?.promotional_price;
-    const rawStock = args.productData.stock || args.productData.variants?.[0]?.stock;
-    const rawWeight = args.productData.weight || args.productData.variants?.[0]?.weight;
-    const rawSku = args.productData.sku || args.productData.variants?.[0]?.sku;
-    const rawCost = args.productData.cost || args.productData.variants?.[0]?.cost;
-
-    console.log(`🔍 [Update Product From Webhook] Valores extraídos del webhook:`);
-    console.log(`   - price: ${rawPrice} (tipo: ${typeof rawPrice})`);
-    console.log(`   - promotional_price: ${rawPromotionalPrice} (tipo: ${typeof rawPromotionalPrice})`);
-    console.log(`   - stock: ${rawStock} (tipo: ${typeof rawStock})`);
-    console.log(`   - weight: ${rawWeight} (tipo: ${typeof rawWeight})`);
-    console.log(`   - sku: ${rawSku} (tipo: ${typeof rawSku})`);
-    console.log(`   - cost: ${rawCost} (tipo: ${typeof rawCost})`);
-
-    const productUpdate = {
-      tiendanube_id: args.productId,
-      tiendanube_product_id: args.productId,
-      price: rawPrice,
-      promotional_price: rawPromotionalPrice,
-      stock: rawStock || 0,
-      weight: rawWeight,
-      tiendanube_sku: rawSku,
-      cost: rawCost,
-      updated_at: args.productData.updated_at || new Date().toISOString(),
-      store_id: args.storeId,
-    };
-
-    // Convertir valores string a number cuando sea necesario
-    console.log(`🔄 [Update Product From Webhook] Convirtiendo tipos de datos...`);
-
-    if (typeof productUpdate.price === 'string') {
-      const convertedPrice = parseFloat(productUpdate.price);
-      console.log(`   - price: "${productUpdate.price}" -> ${convertedPrice} (${isNaN(convertedPrice) ? 'NaN' : 'number'})`);
-      productUpdate.price = isNaN(convertedPrice) ? null : convertedPrice;
-    }
-    if (typeof productUpdate.promotional_price === 'string') {
-      const convertedPromotionalPrice = parseFloat(productUpdate.promotional_price);
-      console.log(`   - promotional_price: "${productUpdate.promotional_price}" -> ${convertedPromotionalPrice} (${isNaN(convertedPromotionalPrice) ? 'NaN' : 'number'})`);
-      productUpdate.promotional_price = isNaN(convertedPromotionalPrice) ? null : convertedPromotionalPrice;
-    }
-    if (typeof productUpdate.stock === 'string') {
-      const convertedStock = parseInt(productUpdate.stock);
-      console.log(`   - stock: "${productUpdate.stock}" -> ${convertedStock} (${isNaN(convertedStock) ? 'NaN' : 'number'})`);
-      productUpdate.stock = isNaN(convertedStock) ? 0 : convertedStock;
-    }
-    if (typeof productUpdate.weight === 'string') {
-      const convertedWeight = parseFloat(productUpdate.weight);
-      console.log(`   - weight: "${productUpdate.weight}" -> ${convertedWeight} (${isNaN(convertedWeight) ? 'NaN' : 'number'})`);
-      productUpdate.weight = isNaN(convertedWeight) ? null : convertedWeight;
-    }
-    if (typeof productUpdate.cost === 'string') {
-      const convertedCost = parseFloat(productUpdate.cost);
-      console.log(`   - cost: "${productUpdate.cost}" -> ${convertedCost} (${isNaN(convertedCost) ? 'NaN' : 'number'})`);
-      productUpdate.cost = isNaN(convertedCost) ? null : convertedCost;
-    }
-
-    console.log(`📊 [Update Product From Webhook] Valores finales para actualizar:`, JSON.stringify(productUpdate, null, 2));
-
     if (existingProduct) {
-      // Mostrar estado actual del producto
-      console.log(`📊 [Update Product From Webhook] Estado actual del producto:`, {
-        price: existingProduct.price,
-        promotional_price: existingProduct.promotional_price,
-        stock: existingProduct.stock,
-        weight: existingProduct.weight,
-        tiendanube_sku: existingProduct.tiendanube_sku,
-        cost: existingProduct.cost,
-      });
-
-      // Actualizar producto existente
-      await ctx.db.patch(existingProduct._id, productUpdate);
-      console.log(`✅ [Update Product From Webhook] Producto actualizado: ${args.productId}`);
-
-      // Obtener el producto actualizado para verificar
-      const updatedProduct = await ctx.db.get(existingProduct._id);
-      console.log(`📊 [Update Product From Webhook] Estado después de la actualización:`, {
-        price: updatedProduct?.price,
-        promotional_price: updatedProduct?.promotional_price,
-        stock: updatedProduct?.stock,
-        weight: updatedProduct?.weight,
-        tiendanube_sku: updatedProduct?.tiendanube_sku,
-        cost: updatedProduct?.cost,
-      });
-
-      return { status: 'updated', productId: existingProduct._id };
+      await ctx.db.patch(existingProduct._id, args.updates);
+      console.log(`✅ [Update Product From Webhook] Producto actualizado exitosamente`);
+      return { success: true, action: "updated" };
     } else {
-      // Crear nuevo producto si no existe
-      const newProductId = await ctx.db.insert("tiendanube_products", {
-        ...productUpdate,
-        created_at: args.productData.created_at || new Date().toISOString(),
-        added_at: Date.now(),
-      });
-
-      // Verificar si existe en la tabla products
-      const existingTimefliesProduct = await ctx.db
-        .query("products")
-        .filter((q) =>
-          q.and(
-            q.eq(q.field("provider"), "tiendanube"),
-            q.eq(q.field("item_id"), args.productId)
-          )
-        )
-        .first();
-
-      if (!existingTimefliesProduct) {
-        // Generar SKU único para TimeFlies
-        const timefliesSku = await generateTimefliesSku(ctx);
-
-        // Crear entrada en la tabla products
-        await ctx.db.insert("products", {
-          sku: timefliesSku,
-          provider: "tiendanube",
-          item_id: args.productId,
-        });
-
-        console.log(`🆕 [Update Product From Webhook] Nuevo producto registrado en products: ${timefliesSku}`);
-      }
-
-      console.log(`✅ [Update Product From Webhook] Producto creado: ${args.productId}`);
-      return { status: 'created', productId: newProductId };
+      console.log(`⚠️ [Update Product From Webhook] Producto ${args.productId} no encontrado`);
+      return { success: false, action: "not_found" };
     }
+  },
+});
+
+// Función para obtener logs de webhooks recientes para el dashboard
+export const getRecentWebhookLogs = query({
+  args: {
+    limit: v.optional(v.number()),
+    skip: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit || 5;
+    const skip = args.skip || 0;
+
+    const logs = await ctx.db
+      .query("webhook_logs")
+      .order("desc")
+      .collect();
+
+    const paginatedLogs = logs.slice(skip, skip + limit);
+    const hasMore = logs.length > skip + limit;
+
+    return {
+      logs: paginatedLogs.map(log => ({
+        id: log._id,
+        event: log.event,
+        storeId: log.storeId,
+        productId: log.productId,
+        status: log.status,
+        processedAt: log.processedAt,
+        createdAt: log.createdAt,
+      })),
+      hasMore,
+    };
   },
 });

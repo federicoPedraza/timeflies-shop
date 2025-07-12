@@ -25,7 +25,6 @@ interface SyncResult {
     total_products: number;
     added: number;
     updated: number;
-    products_synced: number;
     deleted: number;
     errors: number;
   };

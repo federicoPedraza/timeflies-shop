@@ -25,10 +25,11 @@ interface Product {
 interface OrdersFiltersProps {
   orders: Order[]
   onFilteredOrdersChange: (filteredOrders: Order[]) => void
+  initialSearch?: string | null
 }
 
-export function OrdersFilters({ orders, onFilteredOrdersChange }: OrdersFiltersProps) {
-  const [searchTerm, setSearchTerm] = useState("")
+export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch }: OrdersFiltersProps) {
+  const [searchTerm, setSearchTerm] = useState(initialSearch || "")
   const [orderStatus, setOrderStatus] = useState<string>("all")
   const [paymentStatus, setPaymentStatus] = useState<string>("all")
   const [paymentMethod, setPaymentMethod] = useState<string>("all")
@@ -38,16 +39,29 @@ export function OrdersFilters({ orders, onFilteredOrdersChange }: OrdersFiltersP
   const [maxAmount, setMaxAmount] = useState("")
   const [isOptionsCollapsed, setIsOptionsCollapsed] = useState(false)
 
+  // Update search term when initialSearch prop changes
+  useEffect(() => {
+    if (initialSearch !== undefined) {
+      setSearchTerm(initialSearch || "")
+    }
+  }, [initialSearch])
+
   useEffect(() => {
     let filtered = orders
     if (searchTerm) {
-      filtered = filtered.filter(
-        (order) =>
-          order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          order.products.some((product: Product) => product.name.toLowerCase().includes(searchTerm.toLowerCase())),
-      )
+      // Split search term by commas and trim whitespace
+      const searchParts = searchTerm.split(',').map(part => part.trim().toLowerCase()).filter(part => part.length > 0)
+
+      filtered = filtered.filter((order) => {
+        // Require all search parts to match at least one field
+        return searchParts.every(part =>
+          order.orderNumber.toLowerCase().includes(part) ||
+          order.customer.name.toLowerCase().includes(part) ||
+          order.customer.email.toLowerCase().includes(part) ||
+          order.customer.phone.toLowerCase().includes(part) ||
+          order.products.some((product: Product) => product.name.toLowerCase().includes(part))
+        )
+      })
     }
     if (orderStatus !== "all") {
       filtered = filtered.filter((order) => order.orderStatus === orderStatus)

@@ -2,18 +2,26 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, ShoppingCart, RefreshCw, CheckCircle, AlertCircle, Webhook, Shield, Database } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ExternalLink, ShoppingCart, RefreshCw, CheckCircle, AlertCircle, Webhook, Shield, Database, Link } from "lucide-react"
 import { useTiendanubeStatus } from "@/hooks/use-tiendanube-status"
 import { useProductSync } from "@/hooks/use-product-sync"
 import { useOrderSync } from "@/hooks/use-order-sync"
+import { useWebhookConfig } from "@/hooks/use-webhook-config"
+import { useWebhookStatus } from "@/hooks/use-webhook-status"
 import { useState } from "react"
 
 export function EcommerceSection() {
   const { tiendanubeStatus, loading } = useTiendanubeStatus();
   const { syncing: syncingProducts, lastSyncResult: lastProductSyncResult, error: productError, syncProducts, clearError: clearProductError, clearLastSyncResult: clearLastProductSyncResult } = useProductSync();
   const { syncing: syncingOrders, lastSyncResult: lastOrderSyncResult, error: orderError, syncOrders, clearError: clearOrderError, clearLastSyncResult: clearLastOrderSyncResult } = useOrderSync();
+  const { configuring, lastResult, error: webhookError, configureWebhooks, clearError: clearWebhookError, clearLastResult: clearWebhookResult } = useWebhookConfig();
+  const { checking: checkingWebhookStatus, webhookStatus, error: webhookStatusError, checkWebhookStatus, clearError: clearWebhookStatusError, clearStatus: clearWebhookStatus } = useWebhookStatus();
   const [showProductSyncResult, setShowProductSyncResult] = useState(false);
   const [showOrderSyncResult, setShowOrderSyncResult] = useState(false);
+  const [showWebhookResult, setShowWebhookResult] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState('');
 
   const getStatusBadge = () => {
     if (loading) {
@@ -61,6 +69,75 @@ export function EcommerceSection() {
         clearLastOrderSyncResult();
       }, 5000);
     }
+  };
+
+    const handleConfigureWebhooks = async () => {
+    if (!webhookUrl.trim()) {
+      return;
+    }
+
+    const result = await configureWebhooks(webhookUrl.trim());
+    if (result) {
+      setShowWebhookResult(true);
+      // Ocultar el resultado después de 8 segundos
+      setTimeout(() => {
+        setShowWebhookResult(false);
+        clearWebhookResult();
+      }, 8000);
+    }
+  };
+
+  const handleCheckWebhookStatus = async () => {
+    await checkWebhookStatus();
+  };
+
+  const getWebhookStatusBadge = () => {
+    if (checkingWebhookStatus) {
+      return (
+        <Badge variant="secondary" className="bg-gray-100 text-gray-600 border-gray-200">
+          Checking...
+        </Badge>
+      );
+    }
+
+    if (webhookStatusError) {
+      return (
+        <Badge variant="secondary" className="bg-red-100 text-red-800 border-red-200">
+          Error
+        </Badge>
+      );
+    }
+
+    if (webhookStatus?.total_webhooks && webhookStatus.total_webhooks > 0) {
+      return (
+        <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
+          Active ({webhookStatus.total_webhooks})
+        </Badge>
+      );
+    }
+
+    // Only show "Not Configured" if we've actually checked and found no webhooks
+    if (webhookStatus !== null && webhookStatus.total_webhooks === 0) {
+      return (
+        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+          Not Configured
+        </Badge>
+      );
+    }
+
+    // Initial state - still loading
+    return (
+      <Badge variant="secondary" className="bg-gray-100 text-gray-600 border-gray-200">
+        Checking...
+      </Badge>
+    );
+  };
+
+  const getConfiguredWebhookUrl = () => {
+    if (webhookStatus?.webhooks && webhookStatus.webhooks.length > 0) {
+      return webhookStatus.webhooks[0].url;
+    }
+    return 'https://your-domain.com/api/webhooks/tiendanube';
   };
 
   const getProductSyncButtonText = () => {
@@ -210,10 +287,6 @@ export function EcommerceSection() {
                     <span className="ml-2 text-green-600">{lastProductSyncResult.summary.updated}</span>
                   </div>
                   <div>
-                    <span className="text-green-700 font-medium">Products Synced:</span>
-                    <span className="ml-2 text-green-600">{lastProductSyncResult.summary.products_synced}</span>
-                  </div>
-                  <div>
                     <span className="text-green-700 font-medium">Deleted:</span>
                     <span className="ml-2 text-green-600">{lastProductSyncResult.summary.deleted}</span>
                   </div>
@@ -248,56 +321,8 @@ export function EcommerceSection() {
                     <span className="text-blue-700 font-medium">Updated:</span>
                     <span className="ml-2 text-blue-600">{lastOrderSyncResult.summary.updated}</span>
                   </div>
-                  <div>
-                    <span className="text-blue-700 font-medium">Orders Synced:</span>
-                    <span className="ml-2 text-blue-600">{lastOrderSyncResult.summary.orders_synced}</span>
-                  </div>
-                  <div>
-                    <span className="text-blue-700 font-medium">Products Processed:</span>
-                    <span className="ml-2 text-blue-600">{lastOrderSyncResult.summary.products_processed}</span>
-                  </div>
+
                 </div>
-
-                {/* Show duplicate cleanup information */}
-                {lastOrderSyncResult.summary.cleanup && (
-                  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded">
-                    <div className="flex items-center gap-2 text-orange-800 mb-2">
-                      <Shield className="h-4 w-4" />
-                      <span className="text-sm font-medium">Duplicate Cleanup</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-orange-700 font-medium">Total Orders:</span>
-                        <span className="ml-1 text-orange-600">{lastOrderSyncResult.summary.cleanup.total_orders}</span>
-                      </div>
-                      <div>
-                        <span className="text-orange-700 font-medium">Duplicates Removed:</span>
-                        <span className="ml-1 text-orange-600">{lastOrderSyncResult.summary.cleanup.duplicates_removed}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Show local refresh information */}
-                {lastOrderSyncResult.summary.local_refresh && (
-                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
-                    <div className="flex items-center gap-2 text-green-800 mb-2">
-                      <Database className="h-4 w-4" />
-                      <span className="text-sm font-medium">Local Orders Refreshed</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div>
-                        <span className="text-green-700 font-medium">Total Processed:</span>
-                        <span className="ml-1 text-green-600">{lastOrderSyncResult.summary.local_refresh.total_processed}</span>
-                      </div>
-                      <div>
-                        <span className="text-green-700 font-medium">Created:</span>
-                        <span className="ml-1 text-green-600">{lastOrderSyncResult.summary.local_refresh.created}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {lastOrderSyncResult.summary.errors > 0 && (
                   <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
                     <span className="font-medium">Warnings:</span> {lastOrderSyncResult.summary.errors} errors occurred during sync
@@ -317,38 +342,173 @@ export function EcommerceSection() {
             Webhooks Configuration
           </CardTitle>
           <CardDescription>
-            Automatic product synchronization via webhooks (configure in Tiendanube panel)
+            Configure automatic synchronization via webhooks with your Tiendanube store
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
+            {/* Webhook configuration form */}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="webhook-url">Webhook URL</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="webhook-url"
+                    type="url"
+                    placeholder="https://your-domain.com/api/webhooks/tiendanube"
+                    value={webhookUrl}
+                    onChange={(e) => setWebhookUrl(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    onClick={handleConfigureWebhooks}
+                    disabled={configuring || !webhookUrl.trim() || !tiendanubeStatus?.status}
+                    className="flex items-center gap-2"
+                  >
+                    {configuring ? (
+                      <RefreshCw className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Link className="h-4 w-4" />
+                    )}
+                    {configuring ? 'Connecting...' : 'Connect'}
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Enter the URL where Tiendanube should send webhook notifications
+                </p>
+              </div>
+            </div>
+
+            {/* Show webhook configuration errors */}
+            {webhookError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center gap-2 text-red-800">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Webhook Configuration Error</span>
+                </div>
+                <p className="text-sm text-red-700 mt-1">{webhookError}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearWebhookError}
+                  className="mt-2 h-6 px-2 text-xs text-red-600 hover:text-red-800"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            )}
+
+            {/* Show webhook configuration results */}
+            {showWebhookResult && lastResult && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 text-blue-800 mb-3">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Webhook Configuration Completed</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-blue-700 font-medium">Total Events:</span>
+                    <span className="ml-2 text-blue-600">{lastResult.results.total}</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 font-medium">Successfully Registered:</span>
+                    <span className="ml-2 text-blue-600">{lastResult.results.successful}</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 font-medium">Failed:</span>
+                    <span className="ml-2 text-blue-600">{lastResult.results.failed}</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 font-medium">Webhook URL:</span>
+                    <span className="ml-2 text-blue-600 text-xs break-all">{lastResult.webhookUrl}</span>
+                  </div>
+                </div>
+
+                {lastResult.results.errors.length > 0 && (
+                  <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                    <span className="font-medium">Errors:</span>
+                    <ul className="mt-1 space-y-1">
+                      {lastResult.results.errors.slice(0, 3).map((error, index) => (
+                        <li key={index}>• {error}</li>
+                      ))}
+                      {lastResult.results.errors.length > 3 && (
+                        <li>• ... and {lastResult.results.errors.length - 3} more errors</li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Show webhook status errors */}
+            {webhookStatusError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center gap-2 text-red-800">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Webhook Status Error</span>
+                </div>
+                <p className="text-sm text-red-700 mt-1">{webhookStatusError}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearWebhookStatusError}
+                  className="mt-2 h-6 px-2 text-xs text-red-600 hover:text-red-800"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            )}
+
             {/* Webhook system status */}
             <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
               <div className="flex items-center gap-3">
                 <div className="flex flex-col">
                   <span className="font-medium">Webhook System</span>
                   <span className="text-sm text-muted-foreground">
-                    Endpoint ready to receive webhooks from Tiendanube
+                    {checkingWebhookStatus && webhookStatus === null
+                      ? 'Checking webhook status...'
+                      : webhookStatus?.total_webhooks
+                      ? `${webhookStatus.total_webhooks} webhook events configured`
+                      : 'No webhooks configured yet'
+                    }
                   </span>
                 </div>
               </div>
-              <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">
-                Active
-              </Badge>
+              <div className="flex items-center gap-2">
+                {getWebhookStatusBadge()}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCheckWebhookStatus}
+                  disabled={checkingWebhookStatus || !tiendanubeStatus?.status}
+                  className="flex items-center gap-2"
+                >
+                  {checkingWebhookStatus ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  {checkingWebhookStatus ? 'Checking...' : 'Check Status'}
+                </Button>
+              </div>
             </div>
 
             {/* Endpoint information */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="p-4 border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Database className="h-4 w-4 text-blue-600" />
                   <span className="font-medium text-sm">Webhook URL</span>
                 </div>
-                <code className="text-xs bg-gray-100 p-2 rounded block">
-                  https://your-domain.com/api/webhooks/tiendanube
+                <code className="text-xs bg-gray-100 p-2 rounded block break-all">
+                  {getConfiguredWebhookUrl()}
                 </code>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Configure this URL in your Tiendanube app settings
+                  {webhookStatus?.total_webhooks
+                    ? 'Currently configured webhook endpoint'
+                    : 'Default webhook endpoint URL'
+                  }
                 </p>
               </div>
 
@@ -366,103 +526,30 @@ export function EcommerceSection() {
               </div>
             </div>
 
-            {/* Supported events */}
-            <div className="p-4 border rounded-lg">
-              <h4 className="font-medium mb-3">Supported Events</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h5 className="text-sm font-medium text-blue-600 mb-2">Product Events</h5>
-                  <ul className="text-xs space-y-1">
-                    <li>• product/created</li>
-                    <li>• product/updated</li>
-                    <li>• product/deleted</li>
-                  </ul>
-                </div>
-                <div>
-                  <h5 className="text-sm font-medium text-green-600 mb-2">Order Events</h5>
-                  <ul className="text-xs space-y-1">
-                    <li>• order/created</li>
-                    <li>• order/updated</li>
-                    <li>• order/cancelled</li>
-                  </ul>
-                </div>
-                <div>
-                  <h5 className="text-sm font-medium text-orange-600 mb-2">LGPD Events (Required)</h5>
-                  <ul className="text-xs space-y-1">
-                    <li>• store/redact</li>
-                    <li>• customers/redact</li>
-                    <li>• customers/data_request</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Configuration instructions */}
-            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
-                <div>
-                  <h4 className="font-medium text-yellow-800 mb-2">Configuration Required</h4>
-                  <p className="text-sm text-yellow-700 mb-3">
-                    Webhooks must be configured from your Tiendanube app panel, not from this application.
-                  </p>
-                  <div className="space-y-2 text-sm">
-                    <p className="text-yellow-700">
-                      <strong>Steps:</strong>
-                    </p>
-                    <ol className="list-decimal list-inside space-y-1 text-yellow-700">
-                      <li>Go to your Tiendanube app settings</li>
-                      <li>Navigate to Webhooks section</li>
-                      <li>Add the webhook URL above</li>
-                      <li>Select the required events</li>
-                      <li>Save the configuration</li>
-                    </ol>
+            {/* Webhook status details */}
+            {webhookStatus && webhookStatus.total_webhooks > 0 && (
+              <div className="p-4 border rounded-lg bg-green-50">
+                <h4 className="font-medium mb-3 text-green-800">Configured Webhooks</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                  <div>
+                    <span className="text-green-700 font-medium">Product Events:</span>
+                    <span className="ml-2 text-green-600">{webhookStatus.summary.product_events}</span>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="mt-3"
-                    asChild
-                  >
-                    <a
-                      href="/docs/webhooks-setup.md"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2"
-                    >
-                      View Setup Guide
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
+                  <div>
+                    <span className="text-green-700 font-medium">Order Events:</span>
+                    <span className="ml-2 text-green-600">{webhookStatus.summary.order_events}</span>
+                  </div>
+                  <div>
+                    <span className="text-green-700 font-medium">App Events:</span>
+                    <span className="ml-2 text-green-600">{webhookStatus.summary.app_events}</span>
+                  </div>
+                  <div>
+                    <span className="text-green-700 font-medium">Other Events:</span>
+                    <span className="ml-2 text-green-600">{webhookStatus.summary.other_events + webhookStatus.summary.category_events}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Useful links */}
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href="/api/webhooks/tiendanube/info"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2"
-                >
-                  System Info
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href="/api/webhooks/tiendanube/logs"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2"
-                >
-                  View Logs
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -19,13 +19,22 @@ import {
   Truck,
   DollarSign,
   Tag,
-  ShoppingCart
+  ShoppingCart,
+  Share2,
+  ExternalLink,
+  Search
 } from "lucide-react"
 import { format } from "date-fns"
 import type { Order } from "@/components/orders-page-content"
+import { capitalizeFirstLetter } from "@/lib/utils"
+import { useRouter } from "next/navigation"
+import { useCallback } from "react"
+import { Button } from "@/components/ui/button"
 
 interface OrderDetailsInlineProps {
   order: Order | null
+  showShareAndOpenButtons?: boolean
+  onOpenTiendaNubeCustomer?: () => void
 }
 
 const statusColors = {
@@ -48,10 +57,46 @@ const paymentMethodLabels = {
   cash_on_delivery: "Cash on Delivery",
 }
 
-export const OrderDetailsInline = memo(function OrderDetailsInline({ order }: OrderDetailsInlineProps) {
+export const OrderDetailsInline = memo(function OrderDetailsInline({ order, showShareAndOpenButtons, onOpenTiendaNubeCustomer }: OrderDetailsInlineProps) {
   const [productsOpen, setProductsOpen] = useState(true)
+  const [copied, setCopied] = useState(false)
+  const router = useRouter()
 
   if (!order) return null
+
+  const handleShare = useCallback(() => {
+    navigator.clipboard.writeText(window.location.href)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }, [])
+
+  const handleSearchCustomer = useCallback(() => {
+    // Only include real, non-empty fields
+    const nameParts = order.customer.name
+      ? order.customer.name.split(' ').filter(part => part.length > 0)
+      : [];
+    const searchParts = [
+      ...nameParts,
+      order.customer.email,
+      order.customer.phone
+    ].filter(part => part && part !== 'Phone not available' && part !== 'N/A' && part !== 'null' && part !== 'undefined');
+
+    // Navigate to orders page with search parameter
+    if (searchParts.length > 0) {
+      const searchQuery = searchParts.join(', ');
+      router.push(`/orders?search=${encodeURIComponent(searchQuery)}`);
+    } else {
+      router.push('/orders');
+    }
+  }, [order.customer, router]);
+
+  const handleOpenTiendaNubeAdmin = useCallback(() => {
+    if (order.providerOrderId) {
+      const tiendanubeAdminUrl = process.env.NEXT_PUBLIC_TIENDANUBE_ADMIN_DASHBOARD || "https://timefliesdemo.mitiendanube.com/admin/v2";
+      const orderUrl = `${tiendanubeAdminUrl}/orders/${order.providerOrderId}`;
+      window.open(orderUrl, "_blank");
+    }
+  }, [order]);
 
   const subtotal = order.products.reduce((sum, product) => sum + product.price * product.quantity, 0)
   const totalItems = order.products.reduce((sum, product) => sum + product.quantity, 0)
@@ -59,10 +104,40 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order }: Or
   return (
     <Card className="w-full">
       <CardHeader>
-        <div className="flex items-center gap-2">
-          <Receipt className="h-5 w-5" />
-          <CardTitle className="text-xl">Order Details - {order.orderNumber}</CardTitle>
-          <Badge className={statusColors[order.orderStatus]}>{order.orderStatus}</Badge>
+        <div className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-2">
+            <Receipt className="h-5 w-5" />
+            <CardTitle className="text-xl">Order Details - {order.orderNumber}</CardTitle>
+            <Badge className={statusColors[order.orderStatus]}>{capitalizeFirstLetter(order.orderStatus)}</Badge>
+          </div>
+          {showShareAndOpenButtons && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={handleShare}
+                type="button"
+              >
+                <Share2 className="mr-1" />
+                {copied ? "Copied!" : "Share"}
+              </Button>
+              <Button
+                variant="default"
+                onClick={() => router.push(`/orders/${order.id}`)}
+                type="button"
+              >
+                <ExternalLink className="mr-1" />
+                Inspect
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleOpenTiendaNubeAdmin}
+                type="button"
+              >
+                <ExternalLink className="mr-1" />
+                View Order in TiendaNube
+              </Button>
+            </div>
+          )}
         </div>
         <p className="text-sm text-muted-foreground flex items-center gap-2">
           <Calendar className="h-4 w-4" />
@@ -74,10 +149,21 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order }: Or
           {/* Customer Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <User className="h-5 w-5" />
-                Customer Information
-              </CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Customer Information
+                </CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSearchCustomer}
+                  className="flex items-center gap-2"
+                >
+                  <Search className="h-4 w-4" />
+                  Search Orders
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
@@ -92,6 +178,19 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order }: Or
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Phone:</span> {order.customer.phone}
               </div>
+              {order.customer?.id && onOpenTiendaNubeCustomer && (
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onOpenTiendaNubeCustomer}
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    View in TiendaNube
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -106,7 +205,7 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order }: Or
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className="font-medium">Status:</span>
-                <Badge className={statusColors[order.paymentStatus]}>{order.paymentStatus}</Badge>
+                <Badge className={statusColors[order.paymentStatus]}>{capitalizeFirstLetter(order.paymentStatus)}</Badge>
               </div>
               <div className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-muted-foreground" />

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Button } from "@/components/ui/button"
 import {
   User,
   CreditCard,
@@ -20,10 +21,13 @@ import {
   Truck,
   DollarSign,
   Tag,
-  ShoppingCart
+  ShoppingCart,
+  ExternalLink
 } from "lucide-react"
 import { format } from "date-fns"
 import type { Order } from "@/components/orders-page-content"
+import { capitalizeFirstLetter } from "@/lib/utils"
+import { useCallback } from "react"
 
 interface OrderDetailsDialogProps {
   order: Order | null
@@ -56,6 +60,22 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
 
   if (!order) return null
 
+  const handleOpenTiendaNubeAdmin = useCallback(() => {
+    if (order.providerOrderId) {
+      const tiendanubeAdminUrl = process.env.NEXT_PUBLIC_TIENDANUBE_ADMIN_DASHBOARD || "https://timefliesdemo.mitiendanube.com/admin/v2";
+      const orderUrl = `${tiendanubeAdminUrl}/orders/${order.providerOrderId}`;
+      window.open(orderUrl, "_blank");
+    }
+  }, [order]);
+
+  const handleOpenTiendaNubeCustomer = useCallback(() => {
+    if (order.customer?.id) {
+      const tiendanubeAdminUrl = process.env.NEXT_PUBLIC_TIENDANUBE_ADMIN_DASHBOARD || "https://timefliesdemo.mitiendanube.com/admin/v2";
+      const customerUrl = `${tiendanubeAdminUrl}/customers/${order.customer.id}`;
+      window.open(customerUrl, "_blank");
+    }
+  }, [order]);
+
   const subtotal = order.products.reduce((sum, product) => sum + product.price * product.quantity, 0)
   const totalItems = order.products.reduce((sum, product) => sum + product.quantity, 0)
 
@@ -66,7 +86,7 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
           <DialogTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
             Order Details - {order.orderNumber}
-            <Badge className={statusColors[order.orderStatus]}>{order.orderStatus}</Badge>
+            <Badge className={statusColors[order.orderStatus]}>{capitalizeFirstLetter(order.orderStatus)}</Badge>
           </DialogTitle>
           <DialogDescription className="flex items-center gap-2">
             <Calendar className="h-4 w-4" />
@@ -96,6 +116,19 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
                 <Phone className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Phone:</span> {order.customer.phone}
               </div>
+              {order.customer?.id && (
+                <div className="pt-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenTiendaNubeCustomer}
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    View in TiendaNube
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -110,7 +143,7 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
             <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className="font-medium">Status:</span>
-                <Badge className={statusColors[order.paymentStatus]}>{order.paymentStatus}</Badge>
+                <Badge className={statusColors[order.paymentStatus]}>{capitalizeFirstLetter(order.paymentStatus)}</Badge>
               </div>
               <div className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -269,6 +302,20 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
               </p>
             </CardContent>
           </Card>
+        )}
+
+        {/* Footer with Actions */}
+        {order.providerOrderId && (
+          <div className="flex justify-end pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={handleOpenTiendaNubeAdmin}
+              className="flex items-center gap-2"
+            >
+              <ExternalLink className="h-4 w-4" />
+              View Order in TiendaNube
+            </Button>
+          </div>
         )}
       </DialogContent>
     </Dialog>

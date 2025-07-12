@@ -199,379 +199,150 @@ export const upsertTiendanubeOrder = mutation({
   },
 });
 
-// Función para crear una orden en nuestra tabla orders
-export const createOrder = mutation({
-  args: {
-    provider: v.literal("tiendanube"),
-    product_id: v.id("products"),
-    provider_order_id: v.string(),
-    created_at: v.string(),
-    updated_at: v.string(),
-    state: v.union(
-      v.literal("unpaid"),
-      v.literal("paid"),
-      v.literal("pending"),
-      v.literal("cancelled")
-    ),
-  },
-  handler: async (ctx, args) => {
-    const orderId = await ctx.db.insert("orders", args);
-    console.log(`✅ [Create Order] Orden creada: ${orderId}`);
-    return { success: true, orderId };
-  },
-});
-
 // Función para obtener estadísticas de órdenes para el dashboard
 export const getOrderStats = query({
   args: {},
   handler: async (ctx) => {
-    const orders = await ctx.db.query("orders").collect();
+    const orders = await ctx.db.query("tiendanube_orders").collect();
 
     const totalOrders = orders.length;
-    const paidOrders = orders.filter(order => order.state === "paid").length;
-    const pendingOrders = orders.filter(order => order.state === "pending").length;
-    const cancelledOrders = orders.filter(order => order.state === "cancelled").length;
+    const paidOrders = orders.filter(order => order.payment_status === "paid").length;
+    const pendingOrders = orders.filter(order => order.status === "open").length;
+    const cancelledOrders = orders.filter(order => order.status === "cancelled").length;
 
     return {
       totalOrders,
       paidOrders,
       pendingOrders,
       cancelledOrders,
-      unpaidOrders: orders.filter(order => order.state === "unpaid").length,
+      unpaidOrders: orders.filter(order => order.payment_status === "pending").length,
     };
   },
 });
 
-// Función para obtener una orden por producto y proveedor
-export const getOrderByProductAndProvider = query({
-  args: {
-    productId: v.id("products"),
-    providerOrderId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("orders")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("product_id"), args.productId),
-          q.eq(q.field("provider_order_id"), args.providerOrderId)
-        )
-      )
-      .first();
-  },
-});
+// Función para obtener estadísticas detalladas de revenue
+export const getRevenueStats = query({
+  args: {},
+  handler: async (ctx) => {
+    // Obtener todos los productos y órdenes
+    const products = await ctx.db.query("tiendanube_products").collect();
+    const orders = await ctx.db.query("tiendanube_orders").collect();
 
-// Función para obtener una orden por provider_order_id
-export const getOrderByProviderOrderId = query({
-  args: {
-    providerOrderId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("orders")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("provider"), "tiendanube"),
-          q.eq(q.field("provider_order_id"), args.providerOrderId)
-        )
-      )
-      .first();
-  },
-});
-
-// Función para actualizar una orden existente
-export const updateOrder = mutation({
-  args: {
-    orderId: v.id("orders"),
-    updates: v.object({
-      created_at: v.string(),
-      updated_at: v.string(),
-      state: v.union(
-        v.literal("unpaid"),
-        v.literal("paid"),
-        v.literal("pending"),
-        v.literal("cancelled")
-      ),
-    }),
-  },
-  handler: async (ctx, args) => {
-    console.log(`🔄 [Update Order] Actualizando orden ${args.orderId}`);
-
-    await ctx.db.patch(args.orderId, args.updates);
-
-    console.log(`✅ [Update Order] Orden actualizada exitosamente`);
-    return { success: true };
-  },
-});
-
-// Función para crear o actualizar una orden (upsert)
-export const upsertOrder = mutation({
-  args: {
-    provider: v.literal("tiendanube"),
-    product_id: v.id("products"),
-    provider_order_id: v.string(),
-    created_at: v.string(),
-    updated_at: v.string(),
-    state: v.union(
-      v.literal("unpaid"),
-      v.literal("paid"),
-      v.literal("pending"),
-      v.literal("cancelled")
-    ),
-  },
-  handler: async (ctx, args) => {
-    // Buscar si la orden ya existe
-    const existingOrder = await ctx.db
-      .query("orders")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("provider"), args.provider),
-          q.eq(q.field("provider_order_id"), args.provider_order_id)
-        )
-      )
-      .first();
-
-    if (existingOrder) {
-      // Actualizar orden existente
-      await ctx.db.patch(existingOrder._id, {
-        created_at: args.created_at,
-        updated_at: args.updated_at,
-        state: args.state,
-      });
-      console.log(`✅ [Upsert Order] Orden actualizada: ${args.provider_order_id}`);
-      return { success: true, action: "updated", orderId: existingOrder._id };
-    } else {
-      // Crear nueva orden
-      const orderId = await ctx.db.insert("orders", args);
-      console.log(`✅ [Upsert Order] Orden creada: ${args.provider_order_id}`);
-      return { success: true, action: "created", orderId };
+    // Debug: Verificar productos con costos
+    const productsWithCost = products.filter(p => p.cost !== null);
+    console.log(`💰 [getRevenueStats] Total productos: ${products.length}`);
+    console.log(`💰 [getRevenueStats] Productos con costo: ${productsWithCost.length}`);
+    if (productsWithCost.length > 0) {
+      console.log(`💰 [getRevenueStats] Ejemplos de costos:`, productsWithCost.slice(0, 3).map(p => ({
+        id: p.tiendanube_id,
+        cost: p.cost,
+        price: p.price
+      })));
     }
-  },
-});
 
-// Función para obtener todas las órdenes
-export const getAllOrders = query({
-  args: {},
-  handler: async (ctx) => {
-    const orders = await ctx.db.query("orders").collect();
+    // Filtrar solo órdenes pagadas
+    const paidOrders = orders.filter(order => order.payment_status === "paid");
+    console.log(`💰 [getRevenueStats] Órdenes pagadas: ${paidOrders.length} de ${orders.length}`);
 
-    // Obtener datos completos de TiendaNube para cada orden
-    const ordersWithDetails = await Promise.all(
-      orders.map(async (order) => {
-        try {
-          const tiendanubeOrder = await ctx.db
-            .query("tiendanube_orders")
-            .withIndex("by_tiendanube_id", (q) => q.eq("tiendanube_id", parseInt(order.provider_order_id)))
-            .first();
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let totalProfit = 0;
+    let totalClocksSold = 0;
+    let revenueByProduct: Record<string, { revenue: number; cost: number; profit: number; quantity: number }> = {};
 
-          return {
-            ...order,
-            tiendanube_details: tiendanubeOrder ? {
-              contact_name: tiendanubeOrder.contact_name,
-              contact_email: tiendanubeOrder.contact_email,
-              total: tiendanubeOrder.total,
-              currency: tiendanubeOrder.currency,
-              status: tiendanubeOrder.status,
-              payment_status: tiendanubeOrder.payment_status,
-              created_at: tiendanubeOrder.created_at,
-              products: tiendanubeOrder.products,
-            } : null,
-          };
-        } catch (error) {
-          console.error(`Error obteniendo detalles de orden ${order.provider_order_id}:`, error);
-          return order;
-        }
-      })
-    );
+    for (const order of paidOrders) {
+      try {
+        const productsData = JSON.parse(order.products);
 
-    return ordersWithDetails;
-  },
-});
+        for (const product of productsData) {
+          const productId = product.id || product.product_id;
+          const quantity = product.quantity || 1;
+          const price = parseFloat(product.price || "0") / 100; // Convertir de centavos
 
-// Función para limpiar duplicados de órdenes
-export const cleanupDuplicateOrders = mutation({
-  args: {},
-  handler: async (ctx) => {
-    console.log(`🧹 [Cleanup Duplicate Orders] Iniciando limpieza de duplicados`);
+          // Buscar el producto en la base de datos
+          const dbProduct = products.find(p => p.tiendanube_id === parseInt(productId));
 
-    const results = {
-      total_orders: 0,
-      duplicates_removed: 0,
-      errors: 0,
-      errors_details: [] as string[]
-    };
+          if (dbProduct && dbProduct.cost) {
+            const cost = dbProduct.cost / 100; // Convertir de centavos
+            const revenue = price * quantity; // Revenue es el precio de venta
+            const productCost = cost * quantity;
+            const profit = revenue - productCost;
 
-    try {
-      // Obtener todas las órdenes
-      const allOrders = await ctx.db.query("orders").collect();
-      results.total_orders = allOrders.length;
+            totalRevenue += revenue;
+            totalCost += productCost;
+            totalProfit += profit;
+            totalClocksSold += quantity;
 
-      // Agrupar por provider_order_id
-      const ordersByProviderId = new Map<string, any[]>();
-
-      for (const order of allOrders) {
-        const key = order.provider_order_id;
-        if (!ordersByProviderId.has(key)) {
-          ordersByProviderId.set(key, []);
-        }
-        ordersByProviderId.get(key)!.push(order);
-      }
-
-      // Eliminar duplicados, manteniendo solo la más reciente
-      for (const [providerOrderId, orders] of ordersByProviderId) {
-        if (orders.length > 1) {
-          console.log(`🔄 [Cleanup Duplicate Orders] Encontrados ${orders.length} duplicados para ${providerOrderId}`);
-
-          // Ordenar por updated_at (más reciente primero)
-          orders.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
-
-          // Mantener la primera (más reciente) y eliminar el resto
-          const toDelete = orders.slice(1);
-
-          for (const duplicate of toDelete) {
-            try {
-              await ctx.db.delete(duplicate._id);
-              results.duplicates_removed++;
-              console.log(`🗑️ [Cleanup Duplicate Orders] Eliminado duplicado: ${duplicate._id}`);
-            } catch (error) {
-              console.error(`❌ [Cleanup Duplicate Orders] Error eliminando duplicado ${duplicate._id}:`, error);
-              results.errors++;
-              results.errors_details.push(`Error eliminando ${duplicate._id}: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+            // Agrupar por producto
+            const productKey = dbProduct.tiendanube_sku || productId.toString();
+            if (!revenueByProduct[productKey]) {
+              revenueByProduct[productKey] = { revenue: 0, cost: 0, profit: 0, quantity: 0 };
             }
+            revenueByProduct[productKey].revenue += revenue;
+            revenueByProduct[productKey].cost += productCost;
+            revenueByProduct[productKey].profit += profit;
+            revenueByProduct[productKey].quantity += quantity;
+          } else {
+            // Si no encontramos el producto o no tiene costo, usar el precio como revenue
+            const revenue = price * quantity;
+            totalRevenue += revenue;
+            totalClocksSold += quantity;
+
+            console.log(`⚠️ [getRevenueStats] Producto sin costo encontrado:`, {
+              productId,
+              price,
+              quantity,
+              revenue,
+              dbProductFound: !!dbProduct,
+              hasCost: dbProduct ? !!dbProduct.cost : false
+            });
           }
         }
+      } catch (error) {
+        console.error(`❌ [getRevenueStats] Error procesando orden ${order.tiendanube_id}:`, error);
+        // Si hay error al parsear, usar el total de la orden
+        const orderTotal = parseFloat(order.total || "0") / 100;
+        totalRevenue += orderTotal;
       }
-
-      console.log(`✅ [Cleanup Duplicate Orders] Limpieza completada:`, results);
-      return results;
-    } catch (error) {
-      console.error(`❌ [Cleanup Duplicate Orders] Error general:`, error);
-      throw error;
     }
-  },
-});
 
-// Función para refrescar órdenes locales basándose en tiendanube_orders
-export const refreshLocalOrders = mutation({
-  args: {},
-  handler: async (ctx) => {
-    console.log(`🔄 [Refresh Local Orders] Iniciando refresco de órdenes locales`);
+    // Calcular métricas adicionales
+    const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+    const averageOrderValue = paidOrders.length > 0 ? totalRevenue / paidOrders.length : 0;
 
-    const results = {
-      total_processed: 0,
-      updated: 0,
-      created: 0,
-      errors: 0,
-      errors_details: [] as string[]
+    const result = {
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      totalCost: Math.round(totalCost * 100) / 100,
+      totalProfit: Math.round(totalProfit * 100) / 100,
+      profitMargin: Math.round(profitMargin * 100) / 100,
+      totalClocksSold,
+      totalPaidOrders: paidOrders.length,
+      averageOrderValue: Math.round(averageOrderValue * 100) / 100,
+      revenueByProduct,
     };
 
-    try {
-      // Obtener todas las órdenes de TiendaNube
-      const tiendanubeOrders = await ctx.db.query("tiendanube_orders").collect();
-      console.log(`📊 [Refresh Local Orders] Procesando ${tiendanubeOrders.length} órdenes de TiendaNube`);
+    console.log(`💰 [getRevenueStats] Resultado final:`, {
+      totalRevenue: result.totalRevenue,
+      totalCost: result.totalCost,
+      totalProfit: result.totalProfit,
+      profitMargin: result.profitMargin,
+      totalPaidOrders: result.totalPaidOrders,
+      averageOrderValue: result.averageOrderValue,
+      totalClocksSold: result.totalClocksSold,
+    });
 
-      for (const tiendanubeOrder of tiendanubeOrders) {
-        try {
-          // Parsear los productos de la orden
-          const productsData = JSON.parse(tiendanubeOrder.products);
-
-          if (!Array.isArray(productsData)) {
-            console.warn(`⚠️ [Refresh Local Orders] Productos no válidos para orden ${tiendanubeOrder.tiendanube_id}`);
-            continue;
-          }
-
-          // Procesar cada producto de la orden
-          for (const product of productsData) {
-            try {
-              // Buscar el producto en nuestra tabla products
-              const timefliesProduct = await ctx.db
-                .query("products")
-                .withIndex("by_provider_item_id", (q) =>
-                  q.eq("provider", "tiendanube").eq("item_id", product.product_id)
-                )
-                .first();
-
-              if (timefliesProduct) {
-                // Determinar el estado basado en payment_status y status
-                let state: "unpaid" | "paid" | "pending" | "cancelled" = "pending";
-
-                if (tiendanubeOrder.payment_status === "paid") {
-                  state = "paid";
-                } else if (tiendanubeOrder.payment_status === "pending") {
-                  state = "pending";
-                } else if (tiendanubeOrder.status === "cancelled" || tiendanubeOrder.cancelled_at) {
-                  state = "cancelled";
-                } else {
-                  state = "unpaid";
-                }
-
-                // Verificar si ya existe esta orden para evitar duplicados
-                const existingOrder = await ctx.db
-                  .query("orders")
-                  .filter((q) =>
-                    q.and(
-                      q.eq(q.field("provider"), "tiendanube"),
-                      q.eq(q.field("provider_order_id"), tiendanubeOrder.tiendanube_id.toString())
-                    )
-                  )
-                  .first();
-
-                if (!existingOrder) {
-                  // Crear nueva orden solo si no existe
-                  await ctx.db.insert("orders", {
-                    provider: "tiendanube",
-                    product_id: timefliesProduct._id,
-                    provider_order_id: tiendanubeOrder.tiendanube_id.toString(),
-                    created_at: tiendanubeOrder.created_at,
-                    updated_at: tiendanubeOrder.updated_at,
-                    state: state,
-                  });
-                  results.created++;
-                } else {
-                  // Actualizar orden existente
-                  await ctx.db.patch(existingOrder._id, {
-                    created_at: tiendanubeOrder.created_at,
-                    updated_at: tiendanubeOrder.updated_at,
-                    state: state,
-                  });
-                  results.updated++;
-                }
-
-                results.total_processed++;
-                console.log(`✅ [Refresh Local Orders] Orden procesada: ${tiendanubeOrder.tiendanube_id} para producto ${product.product_id}`);
-              } else {
-                console.warn(`⚠️ [Refresh Local Orders] Producto ${product.product_id} no encontrado en tabla products`);
-              }
-            } catch (error) {
-              console.error(`❌ [Refresh Local Orders] Error procesando producto ${product.product_id}:`, error);
-              results.errors++;
-              results.errors_details.push(`Producto ${product.product_id}: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-            }
-          }
-        } catch (error) {
-          console.error(`❌ [Refresh Local Orders] Error procesando orden ${tiendanubeOrder.tiendanube_id}:`, error);
-          results.errors++;
-          results.errors_details.push(`Orden ${tiendanubeOrder.tiendanube_id}: ${error instanceof Error ? error.message : 'Error desconocido'}`);
-        }
-      }
-
-      console.log(`✅ [Refresh Local Orders] Refresco completado:`, results);
-      return results;
-    } catch (error) {
-      console.error(`❌ [Refresh Local Orders] Error general:`, error);
-      throw error;
-    }
+    return result;
   },
 });
 
-// Función para obtener todas las órdenes con datos completos para el nuevo diseño
-export const getOrdersForNewDesign = query({
+// Función para obtener todas las órdenes con datos transformados para el UI
+export const getOrdersWithProviderData = query({
   args: {},
   handler: async (ctx) => {
     const tiendanubeOrders = await ctx.db.query("tiendanube_orders").collect();
 
-    // Transformar los datos al formato requerido por el nuevo diseño
-    const transformedOrders = tiendanubeOrders.map((order) => {
+    // Transformar los datos al formato requerido por el UI
+    const ordersWithDetails = tiendanubeOrders.map((order) => {
       // Parsear los productos
       let products = [];
       try {
@@ -611,6 +382,17 @@ export const getOrdersForNewDesign = query({
         }
       } catch (error) {
         console.error("Error parsing shipping address for order", order.tiendanube_id, error);
+      }
+
+      // Parsear datos del cliente para obtener el ID
+      let customerId = null;
+      try {
+        const customerData = JSON.parse(order.customer);
+        if (customerData && customerData.id) {
+          customerId = customerData.id.toString();
+        }
+      } catch (error) {
+        console.error("Error parsing customer data for order", order.tiendanube_id, error);
       }
 
       // Calcular totales
@@ -660,27 +442,30 @@ export const getOrdersForNewDesign = query({
       };
 
       return {
-        id: order.tiendanube_id.toString(),
+        id: order._id,
+        provider: "tiendanube" as const,
+        providerOrderId: order.tiendanube_id.toString(),
         orderNumber: `TF-${order.tiendanube_id}`,
         customer: {
           name: order.contact_name || "Customer without name",
           email: order.contact_email || "Email not available",
           phone: order.contact_phone || "Phone not available",
+          id: customerId,
         },
         products,
-        orderStatus: orderStatusMap[order.status] || "pending",
-        paymentStatus: paymentStatusMap[order.payment_status] || "pending",
-        paymentMethod: paymentMethodMap[order.gateway] || "credit_card",
+        orderStatus: orderStatusMap[order.status] || "pending" as any,
+        paymentStatus: paymentStatusMap[order.payment_status] || "pending" as any,
+        paymentMethod: paymentMethodMap[order.gateway] || "credit_card" as any,
         totalAmount: total,
         shippingCost,
         taxAmount: Math.max(0, taxAmount),
         discountAmount: discount,
         orderDate: order.created_at,
         shippingAddress,
-        notes: order.note || order.owner_note || undefined,
+        notes: ((order.note ?? order.owner_note) || undefined) as string | undefined,
       };
     });
 
-    return transformedOrders;
+    return ordersWithDetails;
   },
 });

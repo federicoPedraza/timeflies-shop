@@ -130,7 +130,6 @@ export async function POST(request: NextRequest) {
         total_products: products.length,
         added: syncResult.added,
         updated: syncResult.updated,
-        products_synced: syncResult.products_synced || 0,
         deleted: cleanupResult.deleted,
         errors: syncResult.errors + cleanupResult.errors
       }

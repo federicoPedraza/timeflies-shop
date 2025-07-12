@@ -18,6 +18,8 @@ import {
 import { Eye, MoreHorizontal, Settings2, ArrowUpDown, ChevronDown, ChevronUp, ChevronRight, Copy, Check } from "lucide-react"
 import { format } from "date-fns"
 import type { Order } from "@/components/orders-page-content"
+import { capitalizeFirstLetter } from "@/lib/utils"
+
 
 interface OrdersDataTableProps {
   orders: Order[]
@@ -25,6 +27,7 @@ interface OrdersDataTableProps {
   onSelectedOrdersChange?: (selectedOrderIds: string[]) => void
   onInspectedOrderChange?: (order: Order | null) => void
   filtersComponent?: React.ReactNode
+  collapseOnOrderInspect?: boolean
 }
 
 const statusColors = {
@@ -55,11 +58,13 @@ export function OrdersDataTable({
   onSelectedOrdersChange,
   onInspectedOrderChange,
   filtersComponent,
+  collapseOnOrderInspect = false,
 }: OrdersDataTableProps) {
+
   // Set responsive defaults - hide less important columns on smaller screens
   const [visibleColumns, setVisibleColumns] = useState({
     select: true,
-    orderNumber: true,
+    orderId: true,
     customer: true,
     products: false, // Hide by default - can be toggled
     orderStatus: true,
@@ -67,6 +72,8 @@ export function OrdersDataTable({
     paymentMethod: false, // Hide by default - can be toggled
     totalAmount: true,
     orderDate: true,
+    providerItemId: true,
+    provider: true,
     actions: true,
   })
 
@@ -81,12 +88,12 @@ export function OrdersDataTable({
 
   const [isCollapsed, setIsCollapsed] = useState(false)
 
-  // Auto-collapse table when an order is inspected
+  // Auto-collapse table when an order is inspected (from click or from URL)
   useEffect(() => {
-    if (inspectedOrder) {
+    if (inspectedOrder && collapseOnOrderInspect) {
       setIsCollapsed(true)
     }
-  }, [inspectedOrder])
+  }, [inspectedOrder, collapseOnOrderInspect])
   // Removed: const [isFiltersCollapsed, setIsFiltersCollapsed] = useState(false)
 
   // Notify parent component when selection changes
@@ -162,6 +169,8 @@ export function OrdersDataTable({
   // Function to copy order number to clipboard
   const [copiedOrderNumber, setCopiedOrderNumber] = useState<string | null>(null)
 
+
+
   const copyOrderNumber = async (orderNumber: string) => {
     try {
       await navigator.clipboard.writeText(orderNumber)
@@ -189,7 +198,7 @@ export function OrdersDataTable({
 
       setVisibleColumns({
         select: true,
-        orderNumber: true,
+        orderId: true,
         customer: true,
         products: isLargeScreen,
         orderStatus: true,
@@ -197,6 +206,8 @@ export function OrdersDataTable({
         paymentMethod: isLargeScreen,
         totalAmount: true,
         orderDate: !isSmallScreen,
+        providerItemId: true,
+        provider: true,
         actions: true,
       })
     }
@@ -232,6 +243,19 @@ export function OrdersDataTable({
     if (sortField === "customer") {
       aValue = a.customer.name
       bValue = b.customer.name
+    }
+
+    if (sortField === "id") {
+      aValue = a.id
+      bValue = b.id
+    }
+    if (sortField === "providerOrderId") {
+      aValue = a.providerOrderId
+      bValue = b.providerOrderId
+    }
+    if (sortField === "provider") {
+      aValue = a.provider
+      bValue = b.provider
     }
 
     if (aValue && bValue && aValue < bValue) return sortDirection === "asc" ? -1 : 1
@@ -351,7 +375,7 @@ export function OrdersDataTable({
                     onCheckedChange={(checked) => setVisibleColumns((prev) => ({ ...prev, [key]: checked }))}
                   >
                     {key === "select" && "Select"}
-                    {key === "orderNumber" && "Order Number"}
+                    {key === "orderId" && "Order ID"}
                     {key === "customer" && "Customer"}
                     {key === "products" && "Products"}
                     {key === "orderStatus" && "Order Status"}
@@ -359,6 +383,8 @@ export function OrdersDataTable({
                     {key === "paymentMethod" && "Payment Method"}
                     {key === "totalAmount" && "Total Amount"}
                     {key === "orderDate" && "Order Date"}
+                    {key === "providerItemId" && "Provider Item ID"}
+                    {key === "provider" && "Provider"}
                     {key === "actions" && "Actions"}
                   </DropdownMenuCheckboxItem>
                 ))}
@@ -412,14 +438,14 @@ export function OrdersDataTable({
                         />
                       </TableHead>
                     )}
-                    {visibleColumns.orderNumber && (
+                    {visibleColumns.orderId && (
                       <TableHead className="min-w-[140px] text-center">
                         <Button
                           variant="ghost"
-                          onClick={() => handleSort("orderNumber")}
+                          onClick={() => handleSort("id")}
                           className="h-auto p-0 font-semibold"
                         >
-                          Order Number
+                          Order ID
                           <ArrowUpDown className="ml-2 h-3 w-3" />
                         </Button>
                       </TableHead>
@@ -460,6 +486,30 @@ export function OrdersDataTable({
                         </Button>
                       </TableHead>
                     )}
+                    {visibleColumns.providerItemId && (
+                      <TableHead className="min-w-[140px] text-center">
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleSort("providerOrderId")}
+                          className="h-auto p-0 font-semibold"
+                        >
+                          Provider Item ID
+                          <ArrowUpDown className="ml-2 h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                    )}
+                    {visibleColumns.provider && (
+                      <TableHead className="min-w-[120px] text-center">
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleSort("provider")}
+                          className="h-auto p-0 font-semibold"
+                        >
+                          Provider
+                          <ArrowUpDown className="ml-2 h-3 w-3" />
+                        </Button>
+                      </TableHead>
+                    )}
                     {visibleColumns.actions && <TableHead className="text-center min-w-[100px]">Actions</TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -484,29 +534,11 @@ export function OrdersDataTable({
                           />
                         </TableCell>
                       )}
-                      {visibleColumns.orderNumber && (
+                      {visibleColumns.orderId && (
                         <TableCell className="font-medium text-center group">
-                          <div className="flex items-center justify-center gap-2">
-                            <Chip variant="readonly" size="sm">
-                              {order.orderNumber}
-                            </Chip>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                copyOrderNumber(order.orderNumber)
-                              }}
-                              className="h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted"
-                              title={copiedOrderNumber === order.orderNumber ? 'Copied!' : 'Copy order number'}
-                            >
-                              {copiedOrderNumber === order.orderNumber ? (
-                                <Check className="h-3 w-3 text-green-600" />
-                              ) : (
-                                <Copy className="h-3 w-3" />
-                              )}
-                            </Button>
-                          </div>
+                          <Chip variant="readonly" size="sm">
+                            {order.id}
+                          </Chip>
                         </TableCell>
                       )}
                       {visibleColumns.customer && (
@@ -525,14 +557,14 @@ export function OrdersDataTable({
                       {visibleColumns.orderStatus && (
                         <TableCell>
                           <Chip variant="readonly" size="sm" className={statusColors[order.orderStatus]}>
-                            {order.orderStatus}
+                            {capitalizeFirstLetter(order.orderStatus)}
                           </Chip>
                         </TableCell>
                       )}
                       {visibleColumns.paymentStatus && (
                         <TableCell>
                           <Chip variant="readonly" size="sm" className={statusColors[order.paymentStatus]}>
-                            {order.paymentStatus}
+                            {capitalizeFirstLetter(order.paymentStatus)}
                           </Chip>
                         </TableCell>
                       )}
@@ -542,6 +574,20 @@ export function OrdersDataTable({
                       )}
                       {visibleColumns.orderDate && (
                         <TableCell>{format(new Date(order.orderDate), "dd MMM, yyyy")}</TableCell>
+                      )}
+                      {visibleColumns.providerItemId && (
+                        <TableCell className="text-center">
+                          <Chip variant="readonly" size="sm">
+                            {order.providerOrderId}
+                          </Chip>
+                        </TableCell>
+                      )}
+                      {visibleColumns.provider && (
+                        <TableCell className="text-center">
+                          <Chip variant="readonly" size="sm">
+                            {order.provider}
+                          </Chip>
+                        </TableCell>
                       )}
                       {visibleColumns.actions && (
                         <TableCell className="text-center">

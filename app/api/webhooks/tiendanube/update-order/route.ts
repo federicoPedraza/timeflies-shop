@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
       products_count: orderData.products?.length || 0,
     });
 
-        // Limpiar y preparar los datos para Convex
+    // Limpiar y preparar los datos para Convex
     const cleanedOrderData = {
       ...orderData,
       // Convertir store_id a número
@@ -115,65 +115,13 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ [Update Order Webhook] Orden guardada en tiendanube_orders:`, upsertResult);
 
-    // Procesar cada producto de la orden y crear registros en la tabla orders
-    if (orderData.products && Array.isArray(orderData.products)) {
-      for (const product of orderData.products) {
-                try {
-          // Buscar el producto en nuestra tabla products
-          const productRecord = await convex.query(api.products.getProductByTiendanubeId, {
-            tiendanubeId: product.product_id
-          });
-
-          if (productRecord) {
-            // Buscar el registro correspondiente en la tabla products
-            const timefliesProduct = await convex.query(api.products.getProductByItemId, {
-              itemId: product.product_id
-            });
-
-            if (timefliesProduct) {
-              // Determinar el estado basado en payment_status y status
-              let state: "unpaid" | "paid" | "pending" | "cancelled" = "pending";
-
-              if (orderData.payment_status === "paid") {
-                state = "paid";
-              } else if (orderData.payment_status === "pending") {
-                state = "pending";
-              } else if (orderData.status === "cancelled" || orderData.cancelled_at) {
-                state = "cancelled";
-              } else {
-                state = "unpaid";
-              }
-
-              // Crear registro en la tabla orders
-              await convex.mutation(api.orders.createOrder, {
-                provider: "tiendanube",
-                product_id: timefliesProduct._id,
-                provider_order_id: orderData.id.toString(),
-                created_at: orderData.created_at,
-                updated_at: orderData.updated_at,
-                state: state,
-              });
-
-              console.log(`✅ [Update Order Webhook] Orden creada para producto ${product.product_id}`);
-            } else {
-              console.warn(`⚠️ [Update Order Webhook] Producto ${product.product_id} no encontrado en tabla products`);
-            }
-          } else {
-            console.warn(`⚠️ [Update Order Webhook] Producto ${product.product_id} no encontrado en nuestra base de datos`);
-          }
-        } catch (error) {
-          console.error(`❌ [Update Order Webhook] Error procesando producto ${product.product_id}:`, error);
-        }
-      }
-    }
-
     console.log(`✅ [Update Order Webhook] Orden procesada exitosamente: ${orderId}`);
 
     return NextResponse.json({
       success: true,
       orderId: orderId,
       action: upsertResult.action,
-      productsProcessed: orderData.products?.length || 0,
+      productsCount: orderData.products?.length || 0,
     });
 
   } catch (error) {

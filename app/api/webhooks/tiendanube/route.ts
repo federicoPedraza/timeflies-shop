@@ -49,8 +49,8 @@ function verifyWebhookSignature(rawBody: Buffer, hmacHeader: string): boolean {
 
 // Función para generar un ID único para idempotencia
 function generateIdempotencyKey(storeId: number, event: string, id: number): string {
-  // Para product/updated, incluimos timestamp para permitir múltiples actualizaciones
-  if (event === 'product/updated') {
+  // Para product/updated y order/updated, incluimos timestamp para permitir múltiples actualizaciones
+  if (event === 'product/updated' || event === 'order/updated') {
     return `${storeId}-${event}-${id}-${Date.now()}`;
   }
   return `${storeId}-${event}-${id}`;
@@ -176,9 +176,9 @@ export async function POST(request: NextRequest) {
         console.log(`🔄 Webhook ya procesado anteriormente: ${idempotencyKey}`);
         isDuplicate = true;
 
-        // Para product/updated, procesamos aunque sea duplicado
-        if (event === 'product/updated') {
-          console.log(`📝 [${requestId}] Producto actualizado - procesando aunque sea duplicado`);
+        // Para product/updated y order/updated, procesamos aunque sea duplicado
+        if (event === 'product/updated' || event === 'order/updated') {
+          console.log(`📝 [${requestId}] ${event === 'product/updated' ? 'Producto' : 'Orden'} actualizado - procesando aunque sea duplicado`);
         } else {
           const processingTime = Date.now() - startTime;
           console.log(`✅ [${requestId}] Webhook duplicado ignorado en ${processingTime}ms`);
@@ -201,27 +201,18 @@ export async function POST(request: NextRequest) {
           event,
           productId: id,
           payload: JSON.stringify(payload),
-          processedAt: new Date().toISOString()
+          processedAt: new Date().toISOString(),
+          status: 'processed'
         });
 
-                                // Procesar según el tipo de evento
+        // Procesar según el tipo de evento
         switch (event) {
           case 'product/created':
-            // Para webhooks, usamos datos básicos ya que no tenemos acceso al token de la tienda
-            console.log(`📝 Procesando ${event} con datos básicos del webhook`);
-            await convex.mutation(api.products.upsertProductBasic, {
-              productId: id,
-              event,
-              storeId: Number(store_id)
-            });
-            console.log(`✅ Producto creado: ${id}`);
-            break;
-
-                    case 'product/updated':
+          case 'product/updated':
             // Para product/updated, siempre obtenemos los datos completos del producto desde TiendaNube
             console.log(`📝 Procesando ${event} - obteniendo datos completos del producto ${id}${isDuplicate ? ' (duplicado)' : ''}`);
 
-                                    try {
+            try {
               // Llamar al endpoint dedicado para actualizar productos
               const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
               const updateResponse = await fetch(`${baseUrl}/api/webhooks/tiendanube/update-product`, {
@@ -240,31 +231,26 @@ export async function POST(request: NextRequest) {
                 console.log(`✅ [Webhook Handler] Producto actualizado con datos completos: ${id}`, result);
               } else {
                 console.error(`❌ [Webhook Handler] Error actualizando producto ${id}:`, await updateResponse.text());
-                // Fallback a actualización básica
-                await convex.mutation(api.products.upsertProductBasic, {
-                  productId: id,
-                  event,
-                  storeId: Number(store_id)
-                });
-                console.log(`✅ Producto actualizado (fallback): ${id}`);
               }
             } catch (error) {
               console.error(`❌ Error obteniendo datos del producto ${id}:`, error);
-              // Fallback a actualización básica
-              await convex.mutation(api.products.upsertProductBasic, {
-                productId: id,
-                event,
-                storeId: Number(store_id)
-              });
-              console.log(`✅ Producto actualizado (fallback): ${id}`);
             }
             break;
 
           case 'product/deleted':
-            await convex.mutation(api.products.deleteProduct, {
-              productId: id
+            // Buscar el producto en tiendanube_products y eliminarlo
+            const existingProduct = await convex.query(api.products.getProductByTiendanubeId, {
+              tiendanubeId: id
             });
-            console.log(`🗑️  Producto eliminado: ${id}`);
+
+            if (existingProduct) {
+              await convex.mutation(api.products.deleteTiendanubeProduct, {
+                productId: existingProduct._id
+              });
+              console.log(`🗑️  Producto eliminado: ${id}`);
+            } else {
+              console.log(`ℹ️  Producto ${id} no encontrado en la base de datos`);
+            }
             break;
 
           default:
@@ -287,15 +273,17 @@ export async function POST(request: NextRequest) {
           idempotencyKey,
           storeId: Number(store_id),
           event,
-          productId: null,
+          productId: id || null,
           payload: JSON.stringify(payload),
-          processedAt: new Date().toISOString()
+          processedAt: new Date().toISOString(),
+          status: 'processed'
         });
 
         // Procesar según el tipo de evento
         switch (event) {
           case 'order/created':
-            console.log(`📝 Procesando ${event} - obteniendo datos completos de la orden ${id}`);
+          case 'order/updated':
+            console.log(`📝 Procesando ${event} - obteniendo datos completos de la orden ${id}${isDuplicate ? ' (duplicado)' : ''}`);
 
             try {
               // Llamar al endpoint dedicado para actualizar órdenes
@@ -386,6 +374,7 @@ export async function GET() {
       'Idempotency handling',
       'LGPD webhooks support',
       'Product synchronization',
+      'Order synchronization',
       'Detailed logging'
     ]
   });

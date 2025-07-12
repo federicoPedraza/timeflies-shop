@@ -8,21 +8,6 @@ interface SyncResult {
     updated: number;
     errors: number;
     errors_details: string[];
-    orders_synced: number;
-    products_processed: number;
-    cleanup?: {
-      total_orders: number;
-      duplicates_removed: number;
-      errors: number;
-      errors_details: string[];
-    };
-    local_refresh?: {
-      total_processed: number;
-      updated: number;
-      created: number;
-      errors: number;
-      errors_details: string[];
-    };
   };
   timestamp: string;
 }
