@@ -8,8 +8,13 @@
     "dev:backend": "convex dev",
     "predev": "convex dev --until-success && convex dashboard",
     "build": "next build",
+    "build:prod": "npm-run-all lint type-check build:backend build:frontend",
+    "build:backend": "convex deploy --prod",
+    "build:frontend": "next build",
+    "type-check": "tsc --noEmit",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.14",
