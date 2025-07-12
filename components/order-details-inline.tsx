@@ -73,6 +73,12 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
     setTimeout(() => setCopied(false), 1500)
   }, [])
 
+  const handleInspect = useCallback(() => {
+    if (order?.id) {
+      router.push(`/orders/${order.id}`)
+    }
+  }, [order?.id, router])
+
   const handleSearchCustomer = useCallback(() => {
     // Only include real, non-empty fields
     const nameParts = order?.customer?.name
@@ -125,6 +131,15 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
               >
                 {copied ? <Check className="h-3 w-3" /> : <Share2 className="h-3 w-3" />}
                 {copied ? 'Copied!' : 'Share'}
+              </Button>
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleInspect}
+                className="flex items-center gap-2 bg-black text-white"
+              >
+                <Search className="h-3 w-3" />
+                Inspect
               </Button>
               <Button
                 variant="outline"

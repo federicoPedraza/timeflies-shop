@@ -14,10 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Timeflies - Clock Store Dashboard",
+  title: "Dashboard - Timeflies",
   description: "Manage your clock store operations, orders, and inventory",
   icons: {
-    icon: "/convex.svg",
+    icon: "/icon.svg",
   },
 };
 
