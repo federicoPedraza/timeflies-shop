@@ -56,10 +56,10 @@ export function OrdersFilters({
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <CardTitle className="text-lg">Filtros</CardTitle>
+            <CardTitle className="text-lg">Filters</CardTitle>
             {hasActiveFilters && (
               <Badge variant="secondary" className="text-xs">
-                {filteredOrders} de {totalOrders} órdenes
+                {filteredOrders} of {totalOrders} orders
               </Badge>
             )}
           </div>
@@ -70,7 +70,7 @@ export function OrdersFilters({
               onClick={() => setIsExpanded(!isExpanded)}
             >
               <Filter className="h-4 w-4 mr-2" />
-              {isExpanded ? "Ocultar" : "Mostrar"} filtros
+              {isExpanded ? "Hide" : "Show"} filters
             </Button>
             {hasActiveFilters && (
               <Button
@@ -88,62 +88,62 @@ export function OrdersFilters({
 
       {isExpanded && (
         <CardContent className="space-y-4">
-          {/* Búsqueda general */}
+          {/* General search */}
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nombre, email o ID de orden..."
+              placeholder="Search by name, email or order ID..."
               value={filters.searchTerm}
               onChange={(e) => handleFilterChange("searchTerm", e.target.value)}
               className="pl-10"
             />
           </div>
 
-          {/* Filtros específicos */}
+          {/* Specific filters */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Filtro por nombre */}
+            {/* Name filter */}
             <div className="relative">
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Nombre del cliente"
+                placeholder="Customer name"
                 value={filters.searchTerm}
                 onChange={(e) => handleFilterChange("searchTerm", e.target.value)}
                 className="pl-10"
               />
             </div>
 
-            {/* Filtro por email */}
+            {/* Email filter */}
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Email del cliente"
+                placeholder="Customer email"
                 value={filters.searchTerm}
                 onChange={(e) => handleFilterChange("searchTerm", e.target.value)}
                 className="pl-10"
               />
             </div>
 
-            {/* Filtro por estado */}
+            {/* Status filter */}
             <select
               value={filters.status}
               onChange={(e) => handleFilterChange("status", e.target.value)}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              <option value="">Todos los estados</option>
-              <option value="paid">Pagado</option>
-              <option value="pending">Pendiente</option>
-              <option value="unpaid">No pagado</option>
-              <option value="cancelled">Cancelado</option>
+              <option value="">All statuses</option>
+              <option value="paid">Paid</option>
+              <option value="pending">Pending</option>
+              <option value="unpaid">Unpaid</option>
+              <option value="cancelled">Cancelled</option>
             </select>
           </div>
 
-          {/* Filtros de fecha */}
+          {/* Date filters */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative">
               <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="date"
-                placeholder="Fecha desde"
+                placeholder="Date from"
                 value={filters.dateFrom}
                 onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
                 className="pl-10"
@@ -154,14 +154,14 @@ export function OrdersFilters({
               <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="date"
-                placeholder="Fecha hasta"
+                placeholder="Date to"
                 value={filters.dateTo}
                 onChange={(e) => handleFilterChange("dateTo", e.target.value)}
                 className="pl-10"
               />
             </div>
 
-            {/* Ordenamiento */}
+            {/* Sorting */}
             <select
               value={`${filters.sortBy}-${filters.sortOrder}`}
               onChange={(e) => {
@@ -171,14 +171,14 @@ export function OrdersFilters({
               }}
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
             >
-              <option value="created_at-desc">Fecha (más reciente)</option>
-              <option value="created_at-asc">Fecha (más antigua)</option>
-              <option value="contact_name-asc">Nombre (A-Z)</option>
-              <option value="contact_name-desc">Nombre (Z-A)</option>
-              <option value="total-desc">Total (mayor)</option>
-              <option value="total-asc">Total (menor)</option>
-              <option value="provider_order_id-desc">ID (mayor)</option>
-              <option value="provider_order_id-asc">ID (menor)</option>
+              <option value="created_at-desc">Date (newest)</option>
+              <option value="created_at-asc">Date (oldest)</option>
+              <option value="contact_name-asc">Name (A-Z)</option>
+              <option value="contact_name-desc">Name (Z-A)</option>
+              <option value="total-desc">Total (highest)</option>
+              <option value="total-asc">Total (lowest)</option>
+              <option value="provider_order_id-desc">ID (highest)</option>
+              <option value="provider_order_id-asc">ID (lowest)</option>
             </select>
           </div>
         </CardContent>

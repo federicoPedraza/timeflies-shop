@@ -1,19 +1,11 @@
 "use client"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Clock, Package, ShoppingCart, User } from "lucide-react"
+import { Package, User } from "lucide-react"
 
 const activities = [
   {
     id: 1,
-    type: "order",
-    message: "New order #1234 placed",
-    time: "2 minutes ago",
-    icon: ShoppingCart,
-    status: "new",
-  },
-  {
-    id: 2,
     type: "product",
     message: "Vintage Wall Clock restocked",
     time: "1 hour ago",
@@ -21,7 +13,7 @@ const activities = [
     status: "success",
   },
   {
-    id: 3,
+    id: 2,
     type: "customer",
     message: "New customer registered",
     time: "3 hours ago",
@@ -29,20 +21,26 @@ const activities = [
     status: "info",
   },
   {
+    id: 3,
+    type: "product",
+    message: "New product added: Classic Table Clock",
+    time: "6 hours ago",
+    icon: Package,
+    status: "success",
+  },
+  {
     id: 4,
-    type: "order",
-    message: "Order #1230 cancelled",
-    time: "5 hours ago",
-    icon: Clock,
-    status: "cancelled",
+    type: "customer",
+    message: "Customer profile updated",
+    time: "8 hours ago",
+    icon: User,
+    status: "info",
   },
 ]
 
 const statusColors: Record<string, string> = {
-  new: "bg-blue-500",
   success: "bg-green-500",
   info: "bg-gray-500",
-  cancelled: "bg-red-500",
 }
 
 export function RecentActivity() {

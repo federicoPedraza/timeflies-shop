@@ -1,7 +1,8 @@
 "use client"
 
 import { BarChart3, Clock, Home, Package, Settings, ShoppingCart, TrendingUp, Users } from "lucide-react"
-import { useRouter, usePathname } from "next/navigation"
+import { useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useTiendanubeStatus } from "@/hooks/use-tiendanube-status"
 
 import {

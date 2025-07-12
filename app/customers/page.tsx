@@ -8,8 +8,8 @@ export default function CustomersPage() {
   return (
     <DashboardLayout>
       <PlaceholderSection
-        title="Clientes"
-        description="Gestiona tu base de clientes."
+        title="Customers"
+        description="Manage your customer database."
         icon={Users}
       />
     </DashboardLayout>

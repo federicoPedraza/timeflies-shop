@@ -8,8 +8,8 @@ export default function ProductsPage() {
   return (
     <DashboardLayout>
       <PlaceholderSection
-        title="Productos"
-        description="Gestiona tu catálogo de productos."
+        title="Products"
+        description="Manage your product catalog."
         icon={Package}
       />
     </DashboardLayout>

@@ -374,6 +374,7 @@ export const getAllOrders = query({
               status: tiendanubeOrder.status,
               payment_status: tiendanubeOrder.payment_status,
               created_at: tiendanubeOrder.created_at,
+              products: tiendanubeOrder.products,
             } : null,
           };
         } catch (error) {
@@ -560,5 +561,126 @@ export const refreshLocalOrders = mutation({
       console.error(`❌ [Refresh Local Orders] Error general:`, error);
       throw error;
     }
+  },
+});
+
+// Función para obtener todas las órdenes con datos completos para el nuevo diseño
+export const getOrdersForNewDesign = query({
+  args: {},
+  handler: async (ctx) => {
+    const tiendanubeOrders = await ctx.db.query("tiendanube_orders").collect();
+
+    // Transformar los datos al formato requerido por el nuevo diseño
+    const transformedOrders = tiendanubeOrders.map((order) => {
+      // Parsear los productos
+      let products = [];
+      try {
+        const productsData = JSON.parse(order.products);
+        products = productsData.map((product: any) => ({
+          id: product.id?.toString() || product.product_id?.toString() || Math.random().toString(),
+          name: product.name || "Producto sin nombre",
+          category: product.category || "Sin categoría",
+          price: parseFloat(product.price || "0") / 100, // Convertir de centavos
+          quantity: product.quantity || 1,
+          image: product.image?.src || "/placeholder.svg",
+        }));
+      } catch (error) {
+        console.error("Error parsing products for order", order.tiendanube_id, error);
+        products = [];
+      }
+
+      // Parsear la dirección de envío
+      let shippingAddress = {
+        street: "Dirección no disponible",
+        city: "Ciudad no disponible",
+        state: "Estado no disponible",
+        zipCode: "Código postal no disponible",
+        country: "País no disponible",
+      };
+
+      try {
+        const shippingData = JSON.parse(order.shipping_address);
+        if (shippingData) {
+          shippingAddress = {
+            street: shippingData.street || shippingData.address || "Dirección no disponible",
+            city: shippingData.city || "Ciudad no disponible",
+            state: shippingData.state || shippingData.province || "Estado no disponible",
+            zipCode: shippingData.zipcode || shippingData.zip || "Código postal no disponible",
+            country: shippingData.country || "País no disponible",
+          };
+        }
+      } catch (error) {
+        console.error("Error parsing shipping address for order", order.tiendanube_id, error);
+      }
+
+      // Calcular totales
+      const subtotal = parseFloat(order.subtotal || "0") / 100;
+      const total = parseFloat(order.total || "0") / 100;
+      const discount = parseFloat(order.discount || "0") / 100;
+      const shippingCost = 0; // Mock data - no disponible en TiendaNube
+      const taxAmount = total - subtotal - shippingCost + discount;
+
+      // Mapear estados
+      const orderStatusMap: { [key: string]: string } = {
+        "open": "pending",
+        "closed": "delivered",
+        "cancelled": "cancelled",
+        "payment_pending": "pending",
+        "payment_confirmed": "confirmed",
+        "payment_authorized": "processing",
+        "payment_in_process": "processing",
+        "payment_rejected": "failed",
+        "payment_refunded": "refunded",
+        "payment_pending_confirmation": "pending",
+        "payment_on_hold": "pending",
+        "fulfilled": "shipped",
+        "unfulfilled": "pending",
+      };
+
+      const paymentStatusMap: { [key: string]: string } = {
+        "pending": "pending",
+        "paid": "paid",
+        "authorized": "paid",
+        "in_process": "processing",
+        "rejected": "failed",
+        "refunded": "refunded",
+        "cancelled": "cancelled",
+        "in_mediation": "pending",
+        "pending_confirmation": "pending",
+        "on_hold": "pending",
+      };
+
+      const paymentMethodMap: { [key: string]: string } = {
+        "mercadopago": "credit_card",
+        "paypal": "paypal",
+        "bank_transfer": "bank_transfer",
+        "cash_on_delivery": "cash_on_delivery",
+        "credit_card": "credit_card",
+        "debit_card": "credit_card",
+      };
+
+      return {
+        id: order.tiendanube_id.toString(),
+        orderNumber: `TF-${order.tiendanube_id}`,
+        customer: {
+          name: order.contact_name || "Cliente sin nombre",
+          email: order.contact_email || "email@ejemplo.com",
+          phone: order.contact_phone || "+1 (555) 000-0000",
+        },
+        products,
+        orderStatus: orderStatusMap[order.status] || "pending",
+        paymentStatus: paymentStatusMap[order.payment_status] || "pending",
+        paymentMethod: paymentMethodMap[order.gateway] || "credit_card",
+        totalAmount: total,
+        shippingCost,
+        taxAmount: Math.max(0, taxAmount),
+        discountAmount: discount,
+        orderDate: order.created_at,
+        shippingAddress,
+        notes: order.note || order.owner_note || undefined,
+      };
+    });
+
+    return transformedOrders;
   },
 });

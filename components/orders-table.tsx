@@ -15,9 +15,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { OrdersFilters } from "./orders-filters";
 import { useOrdersFilters, OrderWithDetails } from "@/hooks/use-orders-filters";
 import { CopyIdButton } from "./copy-id-button";
+import { OrderProducts } from "./order-products";
+import { useState } from "react";
+import { Button } from "./ui/button";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 export function OrdersTable() {
   const orders = useQuery(api.orders.getAllOrders);
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
 
   const {
     filters,
@@ -27,14 +32,24 @@ export function OrdersTable() {
     filteredCount,
   } = useOrdersFilters(orders as OrderWithDetails[]);
 
+  const toggleOrderExpansion = (orderId: string) => {
+    const newExpanded = new Set(expandedOrders);
+    if (newExpanded.has(orderId)) {
+      newExpanded.delete(orderId);
+    } else {
+      newExpanded.add(orderId);
+    }
+    setExpandedOrders(newExpanded);
+  };
+
   if (orders === undefined) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Órdenes</CardTitle>
+          <CardTitle>Orders</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8">Cargando órdenes...</div>
+          <div className="text-center py-8">Loading orders...</div>
         </CardContent>
       </Card>
     );
@@ -56,15 +71,15 @@ export function OrdersTable() {
   };
 
   const formatCurrency = (amount: string, currency: string) => {
-    const numAmount = parseFloat(amount) / 100; // TiendaNube usa centavos
-    return new Intl.NumberFormat('es-AR', {
+    const numAmount = parseFloat(amount) / 100; // TiendaNube uses cents
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency || 'ARS',
+      currency: currency || 'USD',
     }).format(numAmount);
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('es-AR', {
+    return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -75,7 +90,7 @@ export function OrdersTable() {
 
   return (
     <div className="space-y-6">
-      {/* Filtros */}
+      {/* Filters */}
       <OrdersFilters
         filters={filters}
         onFiltersChange={setFilters}
@@ -83,72 +98,106 @@ export function OrdersTable() {
         filteredOrders={filteredCount}
       />
 
-      {/* Tabla */}
+      {/* Table */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Órdenes</CardTitle>
+            <CardTitle>Orders</CardTitle>
             <div className="text-sm text-muted-foreground">
-              {filteredCount} de {totalOrders} órdenes
+              {filteredCount} of {totalOrders} orders
             </div>
           </div>
         </CardHeader>
         <CardContent>
           {filteredOrders.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              {orders.length === 0 ? "No hay órdenes disponibles" : "No se encontraron órdenes con los filtros aplicados"}
+              {orders.length === 0 ? "No orders available" : "No orders found with the applied filters"}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>ID Orden</TableHead>
-                    <TableHead>Cliente</TableHead>
+                    <TableHead></TableHead>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Customer</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Total</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead>Pago</TableHead>
-                    <TableHead>Fecha</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Payment</TableHead>
+                    <TableHead>Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredOrders.map((order) => (
-                    <TableRow key={order._id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm">
-                            #{order.provider_order_id}
-                          </span>
-                          <CopyIdButton orderId={order.provider_order_id} />
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {order.tiendanube_details?.contact_name || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {order.tiendanube_details?.contact_email || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {order.tiendanube_details?.total && order.tiendanube_details?.currency
-                          ? formatCurrency(order.tiendanube_details.total, order.tiendanube_details.currency)
-                          : 'N/A'
-                        }
-                      </TableCell>
-                      <TableCell>
-                        {getStateBadge(order.state)}
-                      </TableCell>
-                      <TableCell>
-                        {order.tiendanube_details?.payment_status || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {order.tiendanube_details?.created_at
-                          ? formatDate(order.tiendanube_details.created_at)
-                          : 'N/A'
-                        }
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {filteredOrders.map((order) => {
+                    const isExpanded = expandedOrders.has(order._id);
+                    const hasProducts = order.tiendanube_details?.products;
+
+                    return [
+                      <TableRow key={order._id}>
+                        <TableCell>
+                          {hasProducts && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleOrderExpansion(order._id)}
+                              className="h-6 w-6 p-0"
+                            >
+                              {isExpanded ? (
+                                <ChevronDown className="h-4 w-4" />
+                              ) : (
+                                <ChevronRight className="h-4 w-4" />
+                              )}
+                            </Button>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-sm">
+                              #{order.provider_order_id}
+                            </span>
+                            <CopyIdButton orderId={order.provider_order_id} />
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {order.tiendanube_details?.contact_name || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {order.tiendanube_details?.contact_email || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {order.tiendanube_details?.total && order.tiendanube_details?.currency
+                            ? formatCurrency(order.tiendanube_details.total, order.tiendanube_details.currency)
+                            : 'N/A'
+                          }
+                        </TableCell>
+                        <TableCell>
+                          {getStateBadge(order.state)}
+                        </TableCell>
+                        <TableCell>
+                          {order.tiendanube_details?.payment_status || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {order.tiendanube_details?.created_at
+                            ? formatDate(order.tiendanube_details.created_at)
+                            : 'N/A'
+                          }
+                        </TableCell>
+                      </TableRow>,
+                      isExpanded && hasProducts && order.tiendanube_details && (
+                        <TableRow key={`${order._id}-products`}>
+                          <TableCell colSpan={8} className="p-0">
+                            <div className="p-4 bg-gray-50">
+                              <OrderProducts
+                                productsJson={order.tiendanube_details.products!}
+                                currency={order.tiendanube_details.currency || 'USD'}
+                              />
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    ].filter(Boolean);
+                  })}
                 </TableBody>
               </Table>
             </div>

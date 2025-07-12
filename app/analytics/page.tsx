@@ -9,7 +9,7 @@ export default function AnalyticsPage() {
     <DashboardLayout>
       <PlaceholderSection
         title="Analytics"
-        description="Análisis detallado de tu negocio."
+        description="Detailed analysis of your business."
         icon={BarChart3}
       />
     </DashboardLayout>

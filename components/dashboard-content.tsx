@@ -1,7 +1,5 @@
 "use client"
-import { OrdersTable } from "@/components/orders-table"
 import { StatsCards } from "@/components/stats-cards"
-import { OrderChart } from "@/components/order-chart"
 import { RecentActivity } from "@/components/recent-activity"
 
 export function DashboardContent() {
@@ -16,14 +14,12 @@ export function DashboardContent() {
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
         <div className="col-span-4">
-          <OrderChart />
+          {/* Removed OrderChart - orders trends */}
         </div>
         <div className="col-span-3">
           <RecentActivity />
         </div>
       </div>
-
-      <OrdersTable />
     </div>
   )
 }

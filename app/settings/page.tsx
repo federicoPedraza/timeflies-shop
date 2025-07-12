@@ -8,8 +8,8 @@ export default function SettingsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Configuración</h2>
-          <p className="text-muted-foreground">Gestiona la configuración de tu tienda y preferencias.</p>
+          <h2 className="text-2xl font-bold tracking-tight">Settings</h2>
+          <p className="text-muted-foreground">Manage your store configuration and preferences.</p>
         </div>
 
         <EcommerceSection />

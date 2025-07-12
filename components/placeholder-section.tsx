@@ -22,28 +22,28 @@ export function PlaceholderSection({ title, description, icon: Icon = Constructi
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Icon className="h-5 w-5" />
-              En desarrollo
+              Under Development
             </CardTitle>
             <CardDescription>
-              Esta funcionalidad está siendo desarrollada activamente
+              This functionality is being actively developed
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-center h-32 border-2 border-dashed border-muted-foreground/25 rounded-lg">
               <div className="text-center space-y-2">
                 <Construction className="h-8 w-8 mx-auto text-muted-foreground" />
-                <p className="text-muted-foreground font-medium">Próximamente disponible</p>
-                <p className="text-sm text-muted-foreground">Estamos trabajando para traerte esta funcionalidad</p>
+                <p className="text-muted-foreground font-medium">Coming Soon</p>
+                <p className="text-sm text-muted-foreground">We're working to bring you this functionality</p>
               </div>
             </div>
 
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div>
-                <p className="text-sm font-medium">¿Quieres ser notificado?</p>
-                <p className="text-xs text-muted-foreground">Te avisaremos cuando esté disponible</p>
+                <p className="text-sm font-medium">Want to be notified?</p>
+                <p className="text-xs text-muted-foreground">We'll let you know when it's available</p>
               </div>
               <Button variant="outline" size="sm">
-                Notificarme
+                Notify Me
                 <ArrowRight className="h-3 w-3 ml-1" />
               </Button>
             </div>

@@ -258,7 +258,7 @@ export function EcommerceSection() {
                   </div>
                 </div>
 
-                {/* Mostrar información de la limpieza de duplicados */}
+                {/* Show duplicate cleanup information */}
                 {lastOrderSyncResult.summary.cleanup && (
                   <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded">
                     <div className="flex items-center gap-2 text-orange-800 mb-2">
@@ -278,7 +278,7 @@ export function EcommerceSection() {
                   </div>
                 )}
 
-                {/* Mostrar información del refresco local */}
+                {/* Show local refresh information */}
                 {lastOrderSyncResult.summary.local_refresh && (
                   <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
                     <div className="flex items-center gap-2 text-green-800 mb-2">
@@ -309,7 +309,7 @@ export function EcommerceSection() {
         </CardContent>
       </Card>
 
-      {/* Sección de Webhooks */}
+      {/* Webhooks Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -322,7 +322,7 @@ export function EcommerceSection() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {/* Estado del sistema de webhooks */}
+            {/* Webhook system status */}
             <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
               <div className="flex items-center gap-3">
                 <div className="flex flex-col">
@@ -337,15 +337,15 @@ export function EcommerceSection() {
               </Badge>
             </div>
 
-            {/* Información del endpoint */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Endpoint information */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Database className="h-4 w-4 text-blue-600" />
                   <span className="font-medium text-sm">Webhook URL</span>
                 </div>
                 <code className="text-xs bg-gray-100 p-2 rounded block">
-                  https://tu-dominio.com/api/webhooks/tiendanube
+                  https://your-domain.com/api/webhooks/tiendanube
                 </code>
                 <p className="text-xs text-muted-foreground mt-2">
                   Configure this URL in your Tiendanube app settings
@@ -366,7 +366,7 @@ export function EcommerceSection() {
               </div>
             </div>
 
-            {/* Eventos soportados */}
+            {/* Supported events */}
             <div className="p-4 border rounded-lg">
               <h4 className="font-medium mb-3">Supported Events</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -397,7 +397,7 @@ export function EcommerceSection() {
               </div>
             </div>
 
-            {/* Instrucciones de configuración */}
+            {/* Configuration instructions */}
             <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
@@ -438,7 +438,7 @@ export function EcommerceSection() {
               </div>
             </div>
 
-            {/* Enlaces útiles */}
+            {/* Useful links */}
             <div className="flex gap-2">
               <Button variant="outline" size="sm" asChild>
                 <a

@@ -12,6 +12,7 @@ export interface OrderWithDetails {
     currency?: string;
     payment_status?: string;
     created_at?: string;
+    products?: string;
   } | null;
 }
 
