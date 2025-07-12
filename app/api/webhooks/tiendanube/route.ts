@@ -57,7 +57,7 @@ function generateIdempotencyKey(storeId: number, event: string, id: number): str
 }
 
 // Función para manejar webhooks requeridos por LGPD
-async function handleRequiredWebhooks(payload: any) {
+async function handleRequiredWebhooks(payload: { event: string; store_id: number; [key: string]: unknown }) {
   const { event, store_id } = payload;
 
   switch (event) {

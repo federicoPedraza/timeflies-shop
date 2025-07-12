@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet"
+import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 
 interface MapComponentProps {
@@ -11,9 +12,7 @@ interface MapComponentProps {
 // Fix for default marker icons in Leaflet with Next.js
 const fixLeafletIcon = () => {
   if (typeof window !== 'undefined') {
-    const L = require('leaflet')
-
-    delete L.Icon.Default.prototype._getIconUrl
+    delete (L.Icon.Default.prototype as typeof L.Icon.Default.prototype & { _getIconUrl?: () => string })._getIconUrl
     L.Icon.Default.mergeOptions({
       iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
       iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',

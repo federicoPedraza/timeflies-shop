@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-export default function TiendanubeCallback() {
+function TiendanubeCallbackWithSearchParams() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>("loading");
@@ -86,5 +86,13 @@ export default function TiendanubeCallback() {
         )}
       </Card>
     </div>
+  );
+}
+
+export default function TiendanubeCallback() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <TiendanubeCallbackWithSearchParams />
+    </Suspense>
   );
 }

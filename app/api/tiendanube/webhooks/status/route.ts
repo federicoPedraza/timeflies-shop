@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 
 interface TiendanubeWebhook {
   id: number;
@@ -8,7 +8,7 @@ interface TiendanubeWebhook {
   updated_at: string;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   console.log('🚀 [Tiendanube Webhooks Status] Endpoint called');
 
   try {

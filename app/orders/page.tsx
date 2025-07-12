@@ -3,9 +3,9 @@
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { OrdersPageContent } from "@/components/orders-page-content"
 import { useSearchParams } from "next/navigation"
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 
-export default function OrdersPage() {
+function OrdersPageWithSearchParams() {
   const searchParams = useSearchParams()
   const [orderId, setOrderId] = useState<string | null>(null)
   const [initialSearch, setInitialSearch] = useState<string | null>(null)
@@ -15,9 +15,15 @@ export default function OrdersPage() {
     setInitialSearch(searchParams.get('search'))
   }, [searchParams])
 
+  return <OrdersPageContent initialOrderId={orderId} initialSearch={initialSearch} />
+}
+
+export default function OrdersPage() {
   return (
     <DashboardLayout>
-      <OrdersPageContent initialOrderId={orderId} initialSearch={initialSearch} />
+      <Suspense fallback={<div>Loading...</div>}>
+        <OrdersPageWithSearchParams />
+      </Suspense>
     </DashboardLayout>
   )
 }

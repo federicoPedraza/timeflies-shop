@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Map, MapPin, Building, Truck, Navigation, Hash, Home, MapPinHouse } from "lucide-react"
-import type { Order } from "@/components/orders-page-content"
+
 
 const COUNTRY_NAMES: Record<string, string> = {
   AR: "Argentina",
@@ -28,7 +28,7 @@ interface ShippingAddressMapProps {
     zipCode?: string
     country?: string
     comments?: string
-    [key: string]: any // allow extra fields
+    [key: string]: unknown // allow extra fields
   }
 }
 

@@ -17,7 +17,7 @@ export function EcommerceSection() {
   const { syncing: syncingProducts, lastSyncResult: lastProductSyncResult, error: productError, syncProducts, clearError: clearProductError, clearLastSyncResult: clearLastProductSyncResult } = useProductSync();
   const { syncing: syncingOrders, lastSyncResult: lastOrderSyncResult, error: orderError, syncOrders, clearError: clearOrderError, clearLastSyncResult: clearLastOrderSyncResult } = useOrderSync();
   const { configuring, lastResult, error: webhookError, configureWebhooks, clearError: clearWebhookError, clearLastResult: clearWebhookResult } = useWebhookConfig();
-  const { checking: checkingWebhookStatus, webhookStatus, error: webhookStatusError, checkWebhookStatus, clearError: clearWebhookStatusError, clearStatus: clearWebhookStatus } = useWebhookStatus();
+  const { checking: checkingWebhookStatus, webhookStatus, error: webhookStatusError, checkWebhookStatus, clearError: clearWebhookStatusError } = useWebhookStatus();
   const [showProductSyncResult, setShowProductSyncResult] = useState(false);
   const [showOrderSyncResult, setShowOrderSyncResult] = useState(false);
   const [showWebhookResult, setShowWebhookResult] = useState(false);

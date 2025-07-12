@@ -33,14 +33,14 @@ export function PlaceholderSection({ title, description, icon: Icon = Constructi
               <div className="text-center space-y-2">
                 <Construction className="h-8 w-8 mx-auto text-muted-foreground" />
                 <p className="text-muted-foreground font-medium">Coming Soon</p>
-                <p className="text-sm text-muted-foreground">We're working to bring you this functionality</p>
+                <p className="text-sm text-muted-foreground">We&apos;re working to bring you this functionality</p>
               </div>
             </div>
 
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <div>
                 <p className="text-sm font-medium">Want to be notified?</p>
-                <p className="text-xs text-muted-foreground">We'll let you know when it's available</p>
+                <p className="text-xs text-muted-foreground">We&apos;ll let you know when it&apos;s available</p>
               </div>
               <Button variant="outline" size="sm">
                 Notify Me

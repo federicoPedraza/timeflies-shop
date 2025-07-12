@@ -9,7 +9,7 @@
     "predev": "convex dev --until-success && convex dashboard",
     "build": "next build",
     "build:prod": "npm-run-all lint type-check build:backend build:frontend",
-    "build:backend": "convex deploy --prod",
+    "build:backend": "convex deploy",
     "build:frontend": "next build",
     "type-check": "tsc --noEmit",
     "start": "next start",

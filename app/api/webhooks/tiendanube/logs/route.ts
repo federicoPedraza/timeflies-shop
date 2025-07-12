@@ -3,8 +3,6 @@ import { NextRequest, NextResponse } from 'next/server';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const event = searchParams.get('event');
     const storeId = searchParams.get('store_id');
 
     // En un entorno de producción, aquí podrías consultar una base de datos de logs

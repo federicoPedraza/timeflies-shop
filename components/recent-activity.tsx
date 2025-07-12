@@ -3,10 +3,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Package,
-  User,
   ShoppingCart,
   AlertCircle,
-  CheckCircle,
   Truck,
   Box,
   DollarSign,
@@ -15,14 +13,13 @@ import {
   Clock,
   Tag,
   Archive,
-  Loader2,
   FileText
 } from "lucide-react"
 import { useWebhookLogs } from "@/hooks/use-webhook-logs"
 import { formatDistanceToNow } from "date-fns"
 import { useState } from "react";
 
-const eventIconMap: Record<string, any> = {
+const eventIconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   // Product events
   "product/created": Package,
   "product/updated": Edit,

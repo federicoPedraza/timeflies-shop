@@ -164,7 +164,7 @@ function getProviderConfig(provider: string, userId: string, accessToken: string
   return null;
 }
 
-function createProvider(provider: string, config: any) {
+function createProvider(provider: string, config: { appId: string; accessToken: string; userAgent: string }) {
   if (provider === 'tiendanube') {
     return new TiendanubeProvider(config);
   }

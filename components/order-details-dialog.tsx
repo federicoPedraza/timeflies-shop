@@ -62,10 +62,8 @@ const paymentMethodLabels = {
 export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialogProps) {
   const [productsOpen, setProductsOpen] = useState(true)
 
-  if (!order) return null
-
   const handleOpenTiendaNubeAdmin = useCallback(() => {
-    if (order.providerOrderId) {
+    if (order?.providerOrderId) {
       const tiendanubeAdminUrl = process.env.NEXT_PUBLIC_TIENDANUBE_ADMIN_DASHBOARD || "https://timefliesdemo.mitiendanube.com/admin/v2";
       const orderUrl = `${tiendanubeAdminUrl}/orders/${order.providerOrderId}`;
       window.open(orderUrl, "_blank");
@@ -73,12 +71,14 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
   }, [order]);
 
   const handleOpenTiendaNubeCustomer = useCallback(() => {
-    if (order.customer?.id) {
+    if (order?.customer?.id) {
       const tiendanubeAdminUrl = process.env.NEXT_PUBLIC_TIENDANUBE_ADMIN_DASHBOARD || "https://timefliesdemo.mitiendanube.com/admin/v2";
       const customerUrl = `${tiendanubeAdminUrl}/customers/${order.customer.id}`;
       window.open(customerUrl, "_blank");
     }
   }, [order]);
+
+  if (!order) return null
 
   const subtotal = order.products.reduce((sum, product) => sum + product.price * product.quantity, 0)
   const totalItems = order.products.reduce((sum, product) => sum + product.quantity, 0)

@@ -67,8 +67,6 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
   const [copied, setCopied] = useState(false)
   const router = useRouter()
 
-  if (!order) return null
-
   const handleShare = useCallback(() => {
     navigator.clipboard.writeText(window.location.href)
     setCopied(true)
@@ -77,13 +75,13 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
 
   const handleSearchCustomer = useCallback(() => {
     // Only include real, non-empty fields
-    const nameParts = order.customer.name
+    const nameParts = order?.customer?.name
       ? order.customer.name.split(' ').filter(part => part.length > 0)
       : [];
     const searchParts = [
       ...nameParts,
-      order.customer.email,
-      order.customer.phone
+      order?.customer?.email,
+      order?.customer?.phone
     ].filter(part => part && part !== 'Phone not available' && part !== 'N/A' && part !== 'null' && part !== 'undefined');
 
     // Navigate to orders page with search parameter
@@ -93,15 +91,17 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
     } else {
       router.push('/orders');
     }
-  }, [order.customer, router]);
+  }, [order?.customer, router]);
 
   const handleOpenTiendaNubeAdmin = useCallback(() => {
-    if (order.providerOrderId) {
+    if (order?.providerOrderId) {
       const tiendanubeAdminUrl = process.env.NEXT_PUBLIC_TIENDANUBE_ADMIN_DASHBOARD || "https://timefliesdemo.mitiendanube.com/admin/v2";
       const orderUrl = `${tiendanubeAdminUrl}/orders/${order.providerOrderId}`;
       window.open(orderUrl, "_blank");
     }
   }, [order]);
+
+  if (!order) return null
 
   const subtotal = order.products.reduce((sum, product) => sum + product.price * product.quantity, 0)
   const totalItems = order.products.reduce((sum, product) => sum + product.quantity, 0)

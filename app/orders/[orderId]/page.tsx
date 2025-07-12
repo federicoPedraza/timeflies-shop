@@ -23,7 +23,7 @@ export default function OrderPage({ params }: OrderPageProps) {
   // Find the order by Convex _id
   const order = useMemo(() => {
     if (!orders) return null;
-    return orders.find((o: any) => o.id === orderId) || null;
+    return orders.find((o) => o.id === orderId) || null;
   }, [orders, orderId]);
 
   const handleShare = useCallback(() => {
