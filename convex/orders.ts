@@ -578,8 +578,8 @@ export const getOrdersForNewDesign = query({
         const productsData = JSON.parse(order.products);
         products = productsData.map((product: any) => ({
           id: product.id?.toString() || product.product_id?.toString() || Math.random().toString(),
-          name: product.name || "Producto sin nombre",
-          category: product.category || "Sin categoría",
+          name: product.name || "Product without name",
+          category: product.category || "No category",
           price: parseFloat(product.price || "0") / 100, // Convertir de centavos
           quantity: product.quantity || 1,
           image: product.image?.src || "/placeholder.svg",
@@ -591,22 +591,22 @@ export const getOrdersForNewDesign = query({
 
       // Parsear la dirección de envío
       let shippingAddress = {
-        street: "Dirección no disponible",
-        city: "Ciudad no disponible",
-        state: "Estado no disponible",
-        zipCode: "Código postal no disponible",
-        country: "País no disponible",
+        street: "Address not available",
+        city: "City not available",
+        state: "State not available",
+        zipCode: "Zip code not available",
+        country: "Country not available",
       };
 
       try {
         const shippingData = JSON.parse(order.shipping_address);
         if (shippingData) {
           shippingAddress = {
-            street: shippingData.street || shippingData.address || "Dirección no disponible",
-            city: shippingData.city || "Ciudad no disponible",
-            state: shippingData.state || shippingData.province || "Estado no disponible",
-            zipCode: shippingData.zipcode || shippingData.zip || "Código postal no disponible",
-            country: shippingData.country || "País no disponible",
+            street: shippingData.street || shippingData.address || "Address not available",
+            city: shippingData.city || "City not available",
+            state: shippingData.state || shippingData.province || "State not available",
+            zipCode: shippingData.zipcode || shippingData.zip || "Zip code not available",
+            country: shippingData.country || "Country not available",
           };
         }
       } catch (error) {
@@ -663,9 +663,9 @@ export const getOrdersForNewDesign = query({
         id: order.tiendanube_id.toString(),
         orderNumber: `TF-${order.tiendanube_id}`,
         customer: {
-          name: order.contact_name || "Cliente sin nombre",
-          email: order.contact_email || "email@ejemplo.com",
-          phone: order.contact_phone || "+1 (555) 000-0000",
+          name: order.contact_name || "Customer without name",
+          email: order.contact_email || "Email not available",
+          phone: order.contact_phone || "Phone not available",
         },
         products,
         orderStatus: orderStatusMap[order.status] || "pending",

@@ -1,9 +1,26 @@
 "use client"
 
-import { memo } from "react"
+import { memo, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import {
+  User,
+  CreditCard,
+  MapPin,
+  Package,
+  Receipt,
+  FileText,
+  Calendar,
+  Phone,
+  Mail,
+  Building,
+  Truck,
+  DollarSign,
+  Tag,
+  ShoppingCart
+} from "lucide-react"
 import { format } from "date-fns"
 import type { Order } from "@/components/orders-page-content"
 
@@ -32,18 +49,23 @@ const paymentMethodLabels = {
 }
 
 export const OrderDetailsInline = memo(function OrderDetailsInline({ order }: OrderDetailsInlineProps) {
+  const [productsOpen, setProductsOpen] = useState(true)
+
   if (!order) return null
 
   const subtotal = order.products.reduce((sum, product) => sum + product.price * product.quantity, 0)
+  const totalItems = order.products.reduce((sum, product) => sum + product.quantity, 0)
 
   return (
     <Card className="w-full">
       <CardHeader>
         <div className="flex items-center gap-2">
+          <Receipt className="h-5 w-5" />
           <CardTitle className="text-xl">Order Details - {order.orderNumber}</CardTitle>
           <Badge className={statusColors[order.orderStatus]}>{order.orderStatus}</Badge>
         </div>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-sm text-muted-foreground flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
           Placed on {format(new Date(order.orderDate), "dd 'of' MMMM, yyyy 'at' h:mm a")}
         </p>
       </CardHeader>
@@ -52,16 +74,22 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order }: Or
           {/* Customer Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Customer Information</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Customer Information
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div>
+            <CardContent className="space-y-3">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Name:</span> {order.customer.name}
               </div>
-              <div>
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Email:</span> {order.customer.email}
               </div>
-              <div>
+              <div className="flex items-center gap-2">
+                <Phone className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Phone:</span> {order.customer.phone}
               </div>
             </CardContent>
@@ -70,17 +98,22 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order }: Or
           {/* Payment Information */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Payment Information</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Payment Information
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className="font-medium">Status:</span>
                 <Badge className={statusColors[order.paymentStatus]}>{order.paymentStatus}</Badge>
               </div>
-              <div>
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Method:</span> {paymentMethodLabels[order.paymentMethod]}
               </div>
-              <div>
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
                 <span className="font-medium">Total Amount:</span> ${order.totalAmount.toFixed(2)}
               </div>
             </CardContent>
@@ -90,76 +123,126 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order }: Or
         {/* Shipping Address */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Shipping Address</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <MapPin className="h-5 w-5" />
+              Shipping Address
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
-              <div>{order.shippingAddress.street}</div>
-              <div>
+              <div className="flex items-center gap-2">
+                <Building className="h-4 w-4 text-muted-foreground" />
+                {order.shippingAddress.street}
+              </div>
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
                 {order.shippingAddress.city}, {order.shippingAddress.state} {order.shippingAddress.zipCode}
               </div>
-              <div>{order.shippingAddress.country}</div>
+              <div className="flex items-center gap-2">
+                <Truck className="h-4 w-4 text-muted-foreground" />
+                {order.shippingAddress.country}
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Products */}
+        {/* Products - Collapsible */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Products</CardTitle>
+            <Accordion type="single" collapsible>
+              <AccordionItem value="products" className="border-none">
+                <AccordionTrigger
+                  className="p-0 hover:no-underline"
+                  isOpen={productsOpen}
+                  onClick={() => setProductsOpen(!productsOpen)}
+                >
+                  <div className="flex items-center gap-2">
+                    <Package className="h-5 w-5" />
+                    <span className="text-lg font-semibold">Products ({totalItems} items)</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent isOpen={productsOpen}>
+                  <div className="space-y-4 pt-4">
+                    {order.products.map((product) => (
+                      <div key={product.id} className="flex items-center gap-4 p-4 border rounded-lg bg-muted/30">
+                        <img
+                          src={product.image || "/placeholder.svg"}
+                          alt={product.name}
+                          className="h-16 w-16 rounded object-cover"
+                        />
+                        <div className="flex-1">
+                          <h4 className="font-medium flex items-center gap-2">
+                            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                            {product.name}
+                          </h4>
+                          <p className="text-sm text-muted-foreground flex items-center gap-2">
+                            <Tag className="h-3 w-3" />
+                            {product.category}
+                          </p>
+                          <p className="text-sm flex items-center gap-2">
+                            <Package className="h-3 w-3 text-muted-foreground" />
+                            Quantity: {product.quantity}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-medium">${(product.price * product.quantity).toFixed(2)}</div>
+                          <div className="text-sm text-muted-foreground">${product.price} each</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {order.products.map((product) => (
-                <div key={product.id} className="flex items-center gap-4 p-4 border rounded-lg">
-                  <img
-                    src={product.image || "/placeholder.svg"}
-                    alt={product.name}
-                    className="h-16 w-16 rounded object-cover"
-                  />
-                  <div className="flex-1">
-                    <h4 className="font-medium">{product.name}</h4>
-                    <p className="text-sm text-muted-foreground">{product.category}</p>
-                    <p className="text-sm">Quantity: {product.quantity}</p>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-medium">${(product.price * product.quantity).toFixed(2)}</div>
-                    <div className="text-sm text-muted-foreground">${product.price} each</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
         </Card>
 
         {/* Order Summary */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Order Summary</CardTitle>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Receipt className="h-5 w-5" />
+              Order Summary
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span>Subtotal:</span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-2">
+                  <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                  Subtotal ({totalItems} items):
+                </span>
                 <span>${subtotal.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Shipping:</span>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-muted-foreground" />
+                  Shipping:
+                </span>
                 <span>${order.shippingCost.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between">
-                <span>Tax:</span>
+              <div className="flex justify-between items-center">
+                <span className="flex items-center gap-2">
+                  <Building className="h-4 w-4 text-muted-foreground" />
+                  Tax:
+                </span>
                 <span>${order.taxAmount.toFixed(2)}</span>
               </div>
               {order.discountAmount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount:</span>
+                <div className="flex justify-between items-center text-green-600">
+                  <span className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Discount:
+                  </span>
                   <span>-${order.discountAmount.toFixed(2)}</span>
                 </div>
               )}
               <Separator />
-              <div className="flex justify-between font-bold text-lg">
-                <span>Total:</span>
+              <div className="flex justify-between items-center font-bold text-lg">
+                <span className="flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Total:
+                </span>
                 <span>${order.totalAmount.toFixed(2)}</span>
               </div>
             </div>
@@ -170,10 +253,16 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order }: Or
         {order.notes && (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Order Notes</CardTitle>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Order Notes
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm">{order.notes}</p>
+              <p className="text-sm flex items-start gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
+                {order.notes}
+              </p>
             </CardContent>
           </Card>
         )}
