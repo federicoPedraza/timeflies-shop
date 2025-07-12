@@ -1,141 +1,160 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Eye, X, CheckCircle } from "lucide-react"
-
-const initialOrders = [
-  {
-    id: "ORD-001",
-    customer: "John Doe",
-    product: "Vintage Wall Clock",
-    amount: "$89.99",
-    status: "pending",
-    date: "2024-01-15",
-  },
-  {
-    id: "ORD-002",
-    customer: "Jane Smith",
-    product: "Modern Desk Clock",
-    amount: "$45.50",
-    status: "completed",
-    date: "2024-01-14",
-  },
-  {
-    id: "ORD-003",
-    customer: "Bob Johnson",
-    product: "Antique Grandfather Clock",
-    amount: "$299.99",
-    status: "processing",
-    date: "2024-01-13",
-  },
-  {
-    id: "ORD-004",
-    customer: "Alice Brown",
-    product: "Digital Alarm Clock",
-    amount: "$25.99",
-    status: "cancelled",
-    date: "2024-01-12",
-  },
-  {
-    id: "ORD-005",
-    customer: "Charlie Wilson",
-    product: "Cuckoo Clock",
-    amount: "$156.75",
-    status: "pending",
-    date: "2024-01-11",
-  },
-]
-
-const statusColors: Record<string, string> = {
-  pending: "bg-yellow-100 text-yellow-800",
-  processing: "bg-blue-100 text-blue-800",
-  completed: "bg-green-100 text-green-800",
-  cancelled: "bg-red-100 text-red-800",
-}
+import { useQuery } from "convex/react";
+import { api } from "../convex/_generated/api";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "./ui/table";
+import { Badge } from "./ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { OrdersFilters } from "./orders-filters";
+import { useOrdersFilters, OrderWithDetails } from "@/hooks/use-orders-filters";
+import { CopyIdButton } from "./copy-id-button";
 
 export function OrdersTable() {
-  const [orders, setOrders] = useState(initialOrders)
+  const orders = useQuery(api.orders.getAllOrders);
 
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
-    setOrders(orders.map((order) => (order.id === orderId ? { ...order, status: newStatus } : order)))
+  const {
+    filters,
+    setFilters,
+    filteredOrders,
+    totalOrders,
+    filteredCount,
+  } = useOrdersFilters(orders as OrderWithDetails[]);
+
+  if (orders === undefined) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Órdenes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">Cargando órdenes...</div>
+        </CardContent>
+      </Card>
+    );
   }
 
+  const getStateBadge = (state: string) => {
+    const variants = {
+      paid: "bg-green-100 text-green-800",
+      pending: "bg-yellow-100 text-yellow-800",
+      unpaid: "bg-red-100 text-red-800",
+      cancelled: "bg-gray-100 text-gray-800",
+    };
+
+    return (
+      <Badge className={variants[state as keyof typeof variants] || "bg-gray-100 text-gray-800"}>
+        {state}
+      </Badge>
+    );
+  };
+
+  const formatCurrency = (amount: string, currency: string) => {
+    const numAmount = parseFloat(amount) / 100; // TiendaNube usa centavos
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: currency || 'ARS',
+    }).format(numAmount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('es-AR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Recent Orders</CardTitle>
-        <CardDescription>Manage and track your clock orders</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead>Amount</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id}</TableCell>
-                <TableCell>{order.customer}</TableCell>
-                <TableCell>{order.product}</TableCell>
-                <TableCell>{order.amount}</TableCell>
-                <TableCell>
-                  <Badge className={statusColors[order.status]}>{order.status}</Badge>
-                </TableCell>
-                <TableCell>{order.date}</TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Details
-                      </DropdownMenuItem>
-                      {order.status === "pending" && (
-                        <DropdownMenuItem onClick={() => updateOrderStatus(order.id, "processing")}>
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Mark Processing
-                        </DropdownMenuItem>
-                      )}
-                      {order.status === "processing" && (
-                        <DropdownMenuItem onClick={() => updateOrderStatus(order.id, "completed")}>
-                          <CheckCircle className="mr-2 h-4 w-4" />
-                          Mark Completed
-                        </DropdownMenuItem>
-                      )}
-                      {(order.status === "pending" || order.status === "processing") && (
-                        <DropdownMenuItem
-                          onClick={() => updateOrderStatus(order.id, "cancelled")}
-                          className="text-red-600"
-                        >
-                          <X className="mr-2 h-4 w-4" />
-                          Cancel Order
-                        </DropdownMenuItem>
-                      )}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  )
+    <div className="space-y-6">
+      {/* Filtros */}
+      <OrdersFilters
+        filters={filters}
+        onFiltersChange={setFilters}
+        totalOrders={totalOrders}
+        filteredOrders={filteredCount}
+      />
+
+      {/* Tabla */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Órdenes</CardTitle>
+            <div className="text-sm text-muted-foreground">
+              {filteredCount} de {totalOrders} órdenes
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {filteredOrders.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {orders.length === 0 ? "No hay órdenes disponibles" : "No se encontraron órdenes con los filtros aplicados"}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID Orden</TableHead>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Pago</TableHead>
+                    <TableHead>Fecha</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredOrders.map((order) => (
+                    <TableRow key={order._id}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm">
+                            #{order.provider_order_id}
+                          </span>
+                          <CopyIdButton orderId={order.provider_order_id} />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {order.tiendanube_details?.contact_name || 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {order.tiendanube_details?.contact_email || 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {order.tiendanube_details?.total && order.tiendanube_details?.currency
+                          ? formatCurrency(order.tiendanube_details.total, order.tiendanube_details.currency)
+                          : 'N/A'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {getStateBadge(order.state)}
+                      </TableCell>
+                      <TableCell>
+                        {order.tiendanube_details?.payment_status || 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {order.tiendanube_details?.created_at
+                          ? formatDate(order.tiendanube_details.created_at)
+                          : 'N/A'
+                        }
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
 }

@@ -1,17 +1,20 @@
 "use client"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { PlaceholderSection } from "@/components/placeholder-section"
-import { ShoppingCart } from "lucide-react"
+import { OrdersTable } from "@/components/orders-table"
 
 export default function OrdersPage() {
   return (
     <DashboardLayout>
-      <PlaceholderSection
-        title="Órdenes"
-        description="Gestiona todas las órdenes de tu tienda."
-        icon={ShoppingCart}
-      />
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Órdenes</h1>
+          <p className="text-muted-foreground">
+            Gestiona todas las órdenes de tu tienda de TiendaNube.
+          </p>
+        </div>
+        <OrdersTable />
+      </div>
     </DashboardLayout>
   )
 }

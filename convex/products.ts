@@ -84,14 +84,11 @@ export const syncTiendanubeProducts = mutation({
           results.added++;
         }
 
-                // Verificar si existe en la tabla products
+                        // Verificar si existe en la tabla products usando el índice único
         const existingProduct = await ctx.db
           .query("products")
-          .filter((q) =>
-            q.and(
-              q.eq(q.field("provider"), "tiendanube"),
-              q.eq(q.field("item_id"), product.tiendanube_id)
-            )
+          .withIndex("by_provider_item_id", (q) =>
+            q.eq("provider", "tiendanube").eq("item_id", product.tiendanube_id)
           )
           .first();
 
@@ -215,7 +212,9 @@ export const getDashboardStats = query({
       return sum + (price * product.stock);
     }, 0);
 
-    const totalOrders = 0; // TODO: Implementar cuando tengamos tabla de órdenes
+    // Obtener estadísticas de órdenes
+    const orders = await ctx.db.query("orders").collect();
+    const totalOrders = orders.length;
     const totalClocksSold = tiendanubeProducts.reduce((sum, product) => sum + product.stock, 0);
 
     const result = {
@@ -247,6 +246,21 @@ export const getProductByTiendanubeId = query({
     return await ctx.db
       .query("tiendanube_products")
       .filter((q) => q.eq(q.field("tiendanube_id"), args.tiendanubeId))
+      .first();
+  },
+});
+
+// Función para obtener un producto de la tabla products por su item_id
+export const getProductByItemId = query({
+  args: {
+    itemId: v.number(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("products")
+      .withIndex("by_provider_item_id", (q) =>
+        q.eq("provider", "tiendanube").eq("item_id", args.itemId)
+      )
       .first();
   },
 });
@@ -304,14 +318,11 @@ export const createTiendanubeProduct = mutation({
       store_id: args.storeId,
     });
 
-    // Verificar si existe en la tabla products
+    // Verificar si existe en la tabla products usando el índice único
     const existingProduct = await ctx.db
       .query("products")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("provider"), "tiendanube"),
-          q.eq(q.field("item_id"), args.product.tiendanube_id)
-        )
+      .withIndex("by_provider_item_id", (q) =>
+        q.eq("provider", "tiendanube").eq("item_id", args.product.tiendanube_id)
       )
       .first();
 
@@ -349,11 +360,8 @@ export const deleteTiendanubeProduct = mutation({
       // Eliminar de la tabla products si existe
       const existingProduct = await ctx.db
         .query("products")
-        .filter((q) =>
-          q.and(
-            q.eq(q.field("provider"), "tiendanube"),
-            q.eq(q.field("item_id"), product.tiendanube_id)
-          )
+        .withIndex("by_provider_item_id", (q) =>
+          q.eq("provider", "tiendanube").eq("item_id", product.tiendanube_id)
         )
         .first();
 
@@ -386,11 +394,8 @@ export const deleteAllProducts = mutation({
         // Eliminar de la tabla products si existe
         const existingProduct = await ctx.db
           .query("products")
-          .filter((q) =>
-            q.and(
-              q.eq(q.field("provider"), "tiendanube"),
-              q.eq(q.field("item_id"), product.tiendanube_id)
-            )
+          .withIndex("by_provider_item_id", (q) =>
+            q.eq("provider", "tiendanube").eq("item_id", product.tiendanube_id)
           )
           .first();
 

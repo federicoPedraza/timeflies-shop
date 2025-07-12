@@ -278,6 +278,61 @@ export async function POST(request: NextRequest) {
           { status: 500 }
         );
       }
+    } else if (event.startsWith('order/')) {
+      console.log(`📦 Procesando evento de orden: ${event}`);
+
+      try {
+        // Registrar el webhook para idempotencia
+        await convex.mutation(api.products.logWebhook, {
+          idempotencyKey,
+          storeId: Number(store_id),
+          event,
+          productId: null,
+          payload: JSON.stringify(payload),
+          processedAt: new Date().toISOString()
+        });
+
+        // Procesar según el tipo de evento
+        switch (event) {
+          case 'order/created':
+            console.log(`📝 Procesando ${event} - obteniendo datos completos de la orden ${id}`);
+
+            try {
+              // Llamar al endpoint dedicado para actualizar órdenes
+              const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+              const updateResponse = await fetch(`${baseUrl}/api/webhooks/tiendanube/update-order`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  orderId: id,
+                  storeId: Number(store_id),
+                }),
+              });
+
+              if (updateResponse.ok) {
+                const result = await updateResponse.json();
+                console.log(`✅ [Webhook Handler] Orden procesada con datos completos: ${id}`, result);
+              } else {
+                console.error(`❌ [Webhook Handler] Error procesando orden ${id}:`, await updateResponse.text());
+              }
+            } catch (error) {
+              console.error(`❌ Error obteniendo datos de la orden ${id}:`, error);
+            }
+            break;
+
+          default:
+            console.warn(`⚠️  Evento de orden no manejado: ${event}`);
+        }
+
+      } catch (error) {
+        console.error('❌ Error procesando evento de orden:', error);
+        return NextResponse.json(
+          { error: 'Error processing order event' },
+          { status: 500 }
+        );
+      }
     } else {
       console.log(`ℹ️  Evento no manejado: ${event}`);
       // Registrar webhook no manejado para auditoría

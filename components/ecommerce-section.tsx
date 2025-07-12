@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button"
 import { ExternalLink, ShoppingCart, RefreshCw, CheckCircle, AlertCircle, Webhook, Shield, Database } from "lucide-react"
 import { useTiendanubeStatus } from "@/hooks/use-tiendanube-status"
 import { useProductSync } from "@/hooks/use-product-sync"
+import { useOrderSync } from "@/hooks/use-order-sync"
 import { useState } from "react"
 
 export function EcommerceSection() {
   const { tiendanubeStatus, loading } = useTiendanubeStatus();
-  const { syncing, lastSyncResult, error, syncProducts, clearError, clearLastSyncResult } = useProductSync();
-  const [showSyncResult, setShowSyncResult] = useState(false);
+  const { syncing: syncingProducts, lastSyncResult: lastProductSyncResult, error: productError, syncProducts, clearError: clearProductError, clearLastSyncResult: clearLastProductSyncResult } = useProductSync();
+  const { syncing: syncingOrders, lastSyncResult: lastOrderSyncResult, error: orderError, syncOrders, clearError: clearOrderError, clearLastSyncResult: clearLastOrderSyncResult } = useOrderSync();
+  const [showProductSyncResult, setShowProductSyncResult] = useState(false);
+  const [showOrderSyncResult, setShowOrderSyncResult] = useState(false);
 
   const getStatusBadge = () => {
     if (loading) {
@@ -39,22 +42,46 @@ export function EcommerceSection() {
   const handleSyncProducts = async () => {
     const result = await syncProducts('tiendanube');
     if (result) {
-      setShowSyncResult(true);
+      setShowProductSyncResult(true);
       // Ocultar el resultado después de 5 segundos
       setTimeout(() => {
-        setShowSyncResult(false);
-        clearLastSyncResult();
+        setShowProductSyncResult(false);
+        clearLastProductSyncResult();
       }, 5000);
     }
   };
 
-  const getSyncButtonText = () => {
-    if (syncing) return 'Syncing...';
+  const handleSyncOrders = async () => {
+    const result = await syncOrders('tiendanube');
+    if (result) {
+      setShowOrderSyncResult(true);
+      // Ocultar el resultado después de 5 segundos
+      setTimeout(() => {
+        setShowOrderSyncResult(false);
+        clearLastOrderSyncResult();
+      }, 5000);
+    }
+  };
+
+  const getProductSyncButtonText = () => {
+    if (syncingProducts) return 'Syncing...';
     return 'Sync Products';
   };
 
-  const getSyncButtonIcon = () => {
-    if (syncing) {
+  const getProductSyncButtonIcon = () => {
+    if (syncingProducts) {
+      return <RefreshCw className="h-4 w-4 animate-spin" />;
+    }
+    return <RefreshCw className="h-4 w-4" />;
+  };
+
+  const getOrderSyncButtonText = () => {
+    if (syncingOrders) return 'Syncing...';
+    return 'Sync Orders';
+  };
+
+  const getOrderSyncButtonIcon = () => {
+    if (syncingOrders) {
       return <RefreshCw className="h-4 w-4 animate-spin" />;
     }
     return <RefreshCw className="h-4 w-4" />;
@@ -93,11 +120,21 @@ export function EcommerceSection() {
                   variant="outline"
                   size="sm"
                   onClick={handleSyncProducts}
-                  disabled={syncing || !tiendanubeStatus?.status}
+                  disabled={syncingProducts || !tiendanubeStatus?.status}
                   className="flex items-center gap-2"
                 >
-                  {getSyncButtonIcon()}
-                  {getSyncButtonText()}
+                  {getProductSyncButtonIcon()}
+                  {getProductSyncButtonText()}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSyncOrders}
+                  disabled={syncingOrders || !tiendanubeStatus?.status}
+                  className="flex items-center gap-2"
+                >
+                  {getOrderSyncButtonIcon()}
+                  {getOrderSyncButtonText()}
                 </Button>
                 <Button variant="outline" size="sm" asChild>
                   <a
@@ -113,18 +150,18 @@ export function EcommerceSection() {
               </div>
             </div>
 
-            {/* Mostrar errores de sincronización */}
-            {error && (
+            {/* Mostrar errores de sincronización de productos */}
+            {productError && (
               <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                 <div className="flex items-center gap-2 text-red-800">
                   <AlertCircle className="h-4 w-4" />
-                  <span className="text-sm font-medium">Sync Error</span>
+                  <span className="text-sm font-medium">Product Sync Error</span>
                 </div>
-                <p className="text-sm text-red-700 mt-1">{error}</p>
+                <p className="text-sm text-red-700 mt-1">{productError}</p>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={clearError}
+                  onClick={clearProductError}
                   className="mt-2 h-6 px-2 text-xs text-red-600 hover:text-red-800"
                 >
                   Dismiss
@@ -132,40 +169,138 @@ export function EcommerceSection() {
               </div>
             )}
 
-            {/* Mostrar resultados de sincronización */}
-            {showSyncResult && lastSyncResult && (
+            {/* Mostrar errores de sincronización de órdenes */}
+            {orderError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center gap-2 text-red-800">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Order Sync Error</span>
+                </div>
+                <p className="text-sm text-red-700 mt-1">{orderError}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearOrderError}
+                  className="mt-2 h-6 px-2 text-xs text-red-600 hover:text-red-800"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            )}
+
+            {/* Mostrar resultados de sincronización de productos */}
+            {showProductSyncResult && lastProductSyncResult && (
               <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
                 <div className="flex items-center gap-2 text-green-800 mb-3">
                   <CheckCircle className="h-4 w-4" />
-                  <span className="text-sm font-medium">Sync Completed Successfully</span>
+                  <span className="text-sm font-medium">Product Sync Completed Successfully</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-green-700 font-medium">Total Products:</span>
-                    <span className="ml-2 text-green-600">{lastSyncResult.summary.total_products}</span>
+                    <span className="ml-2 text-green-600">{lastProductSyncResult.summary.total_products}</span>
                   </div>
                   <div>
                     <span className="text-green-700 font-medium">Added:</span>
-                    <span className="ml-2 text-green-600">{lastSyncResult.summary.added}</span>
+                    <span className="ml-2 text-green-600">{lastProductSyncResult.summary.added}</span>
                   </div>
                   <div>
                     <span className="text-green-700 font-medium">Updated:</span>
-                    <span className="ml-2 text-green-600">{lastSyncResult.summary.updated}</span>
+                    <span className="ml-2 text-green-600">{lastProductSyncResult.summary.updated}</span>
                   </div>
                   <div>
                     <span className="text-green-700 font-medium">Products Synced:</span>
-                    <span className="ml-2 text-green-600">{lastSyncResult.summary.products_synced}</span>
+                    <span className="ml-2 text-green-600">{lastProductSyncResult.summary.products_synced}</span>
                   </div>
                   <div>
                     <span className="text-green-700 font-medium">Deleted:</span>
-                    <span className="ml-2 text-green-600">{lastSyncResult.summary.deleted}</span>
+                    <span className="ml-2 text-green-600">{lastProductSyncResult.summary.deleted}</span>
                   </div>
                 </div>
 
-                {lastSyncResult.summary.errors > 0 && (
+                {lastProductSyncResult.summary.errors > 0 && (
                   <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
-                    <span className="font-medium">Warnings:</span> {lastSyncResult.summary.errors} errors occurred during sync
+                    <span className="font-medium">Warnings:</span> {lastProductSyncResult.summary.errors} errors occurred during sync
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Mostrar resultados de sincronización de órdenes */}
+            {showOrderSyncResult && lastOrderSyncResult && (
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 text-blue-800 mb-3">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Order Sync Completed Successfully</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-blue-700 font-medium">Total Orders:</span>
+                    <span className="ml-2 text-blue-600">{lastOrderSyncResult.summary.total}</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 font-medium">Added:</span>
+                    <span className="ml-2 text-blue-600">{lastOrderSyncResult.summary.added}</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 font-medium">Updated:</span>
+                    <span className="ml-2 text-blue-600">{lastOrderSyncResult.summary.updated}</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 font-medium">Orders Synced:</span>
+                    <span className="ml-2 text-blue-600">{lastOrderSyncResult.summary.orders_synced}</span>
+                  </div>
+                  <div>
+                    <span className="text-blue-700 font-medium">Products Processed:</span>
+                    <span className="ml-2 text-blue-600">{lastOrderSyncResult.summary.products_processed}</span>
+                  </div>
+                </div>
+
+                {/* Mostrar información de la limpieza de duplicados */}
+                {lastOrderSyncResult.summary.cleanup && (
+                  <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded">
+                    <div className="flex items-center gap-2 text-orange-800 mb-2">
+                      <Shield className="h-4 w-4" />
+                      <span className="text-sm font-medium">Duplicate Cleanup</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-orange-700 font-medium">Total Orders:</span>
+                        <span className="ml-1 text-orange-600">{lastOrderSyncResult.summary.cleanup.total_orders}</span>
+                      </div>
+                      <div>
+                        <span className="text-orange-700 font-medium">Duplicates Removed:</span>
+                        <span className="ml-1 text-orange-600">{lastOrderSyncResult.summary.cleanup.duplicates_removed}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Mostrar información del refresco local */}
+                {lastOrderSyncResult.summary.local_refresh && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded">
+                    <div className="flex items-center gap-2 text-green-800 mb-2">
+                      <Database className="h-4 w-4" />
+                      <span className="text-sm font-medium">Local Orders Refreshed</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-green-700 font-medium">Total Processed:</span>
+                        <span className="ml-1 text-green-600">{lastOrderSyncResult.summary.local_refresh.total_processed}</span>
+                      </div>
+                      <div>
+                        <span className="text-green-700 font-medium">Created:</span>
+                        <span className="ml-1 text-green-600">{lastOrderSyncResult.summary.local_refresh.created}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {lastOrderSyncResult.summary.errors > 0 && (
+                  <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                    <span className="font-medium">Warnings:</span> {lastOrderSyncResult.summary.errors} errors occurred during sync
                   </div>
                 )}
               </div>
@@ -203,7 +338,7 @@ export function EcommerceSection() {
             </div>
 
             {/* Información del endpoint */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="p-4 border rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <Database className="h-4 w-4 text-blue-600" />
@@ -241,6 +376,14 @@ export function EcommerceSection() {
                     <li>• product/created</li>
                     <li>• product/updated</li>
                     <li>• product/deleted</li>
+                  </ul>
+                </div>
+                <div>
+                  <h5 className="text-sm font-medium text-green-600 mb-2">Order Events</h5>
+                  <ul className="text-xs space-y-1">
+                    <li>• order/created</li>
+                    <li>• order/updated</li>
+                    <li>• order/cancelled</li>
                   </ul>
                 </div>
                 <div>

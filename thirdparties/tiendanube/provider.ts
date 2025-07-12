@@ -128,6 +128,7 @@ export class TiendanubeProvider extends Provider {
       // Propiedades específicas de TiendaNube
       tiendanube_id: tiendanubeProduct.id,
       tiendanube_product_id: tiendanubeProduct.id,
+      tiendanube_sku: variant?.sku || null,
       promotional_price: variant?.promotional_price ? parseFloat(variant.promotional_price) : null,
       weight: variant?.weight ? parseFloat(variant.weight) : null,
       cost: variant?.cost ? parseFloat(variant.cost) : null,
@@ -154,6 +155,7 @@ export class TiendanubeProvider extends Provider {
         id: converted.id,
         name: converted.name,
         sku: converted.sku,
+        tiendanube_sku: converted.tiendanube_sku,
         price: converted.price,
         stock: converted.stock,
         cost: converted.cost,
