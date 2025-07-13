@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Package, Grid3X3, List, SortAsc, Eye, Edit, Trash2, MoreHorizontal, AlertTriangle, TrendingUp, TrendingDown, Minus } from "lucide-react"
+import { Package, Grid3X3, List, SortAsc, Eye, Edit, Trash2, MoreHorizontal, AlertTriangle, TrendingUp, TrendingDown, Minus, ExternalLink } from "lucide-react"
 import type { Product } from "./products-page-content"
 import { formatPrice, numberToWords } from "@/lib/utils"
 
@@ -221,6 +221,32 @@ export function ProductsDataTable({
                       </Badge>
                     ))}
                   </div>
+
+                  {/* TiendaNube Link Button */}
+                  {product.handle && (
+                    <div className="absolute bottom-3 right-3">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 w-8 p-0 bg-white/80 hover:bg-white/90 backdrop-blur-sm opacity-60 hover:opacity-100 transition-opacity"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                window.open(`https://timefliesdemo.mitiendanube.com/productos/${product.handle}`, '_blank')
+                              }}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View in Shop</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  )}
                 </div>
 
                 {/* Product Info */}
@@ -288,22 +314,6 @@ export function ProductsDataTable({
                     </div>
                     <span className="text-sm font-medium">{product.stockQuantity} units</span>
                   </div>
-
-                  {/* Features Preview */}
-                  {product.features.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {product.features.slice(0, 3).map((feature, index) => (
-                        <Badge key={index} variant="secondary" className="text-xs">
-                          {feature}
-                        </Badge>
-                      ))}
-                      {product.features.length > 3 && (
-                        <Badge variant="secondary" className="text-xs">
-                          +{product.features.length - 3} more
-                        </Badge>
-                      )}
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             )
@@ -338,6 +348,32 @@ export function ProductsDataTable({
                           {product.status}
                         </Badge>
                       </div>
+
+                      {/* TiendaNube Link Button */}
+                      {product.handle && (
+                        <div className="absolute bottom-2 right-2">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 w-6 p-0 bg-white/80 hover:bg-white/90 backdrop-blur-sm opacity-60 hover:opacity-100 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    window.open(`https://timefliesdemo.mitiendanube.com/productos/${product.handle}`, '_blank')
+                                  }}
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View on TiendaNube</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                      )}
                     </div>
 
                     {/* Product Details */}

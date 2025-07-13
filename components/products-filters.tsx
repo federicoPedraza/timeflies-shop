@@ -7,27 +7,43 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Filter, X } from "lucide-react"
+import { Filter, X, ChevronDown, ChevronUp } from "lucide-react"
 import type { Product } from "@/components/products-page-content"
 
 interface ProductsFiltersProps {
   products: Product[]
   onFilteredProductsChange: (filteredProducts: Product[]) => void
   initialSearch?: string | null
+  initialStockStatus?: string | null
 }
 
-export function ProductsFilters({ products, onFilteredProductsChange, initialSearch }: ProductsFiltersProps) {
+export function ProductsFilters({ products, onFilteredProductsChange, initialSearch, initialStockStatus }: ProductsFiltersProps) {
   const [searchTerm, setSearchTerm] = useState(initialSearch || "")
   const [category, setCategory] = useState<string>("all")
   const [status, setStatus] = useState<string>("all")
-  const [stockStatus, setStockStatus] = useState<string>("all")
+  const [stockStatus, setStockStatus] = useState<string>(initialStockStatus || "all")
   const [brand, setBrand] = useState<string>("all")
   const [minPrice, setMinPrice] = useState("")
   const [maxPrice, setMaxPrice] = useState("")
+  const [isOptionsCollapsed, setIsOptionsCollapsed] = useState(true)
 
   // Get unique values for filter options
   const categories = Array.from(new Set(products.map((p) => p.category)))
   const brands = Array.from(new Set(products.map((p) => p.brand)))
+
+  // Update search term when initialSearch prop changes
+  useEffect(() => {
+    if (initialSearch !== undefined) {
+      setSearchTerm(initialSearch || "")
+    }
+  }, [initialSearch])
+
+  // Update stock status when initialStockStatus prop changes
+  useEffect(() => {
+    if (initialStockStatus !== undefined) {
+      setStockStatus(initialStockStatus || "all")
+    }
+  }, [initialStockStatus])
 
   useEffect(() => {
     let filtered = products
@@ -112,113 +128,126 @@ export function ProductsFilters({ products, onFilteredProductsChange, initialSea
             Filters
             {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
           </CardTitle>
-          {activeFiltersCount > 0 && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
-              <X className="h-3 w-3 mr-1" />
-              Clear All
+          <div className="flex items-center gap-2">
+            {activeFiltersCount > 0 && (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <X className="h-3 w-3 mr-1" />
+                Clear All
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOptionsCollapsed(!isOptionsCollapsed)}
+              className="p-2"
+              aria-label={isOptionsCollapsed ? "Expand filter options" : "Collapse filter options"}
+            >
+              {isOptionsCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
             </Button>
-          )}
+          </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-2">
-            <Label htmlFor="search">Search</Label>
-            <Input
-              id="search"
-              placeholder="Name, SKU, description..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      {!isOptionsCollapsed && (
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-2">
+              <Label htmlFor="search">Search</Label>
+              <Input
+                id="search"
+                placeholder="Name, SKU, description..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label>Category</Label>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>
-                    {cat}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Select value={category} onValueChange={setCategory}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <Label>Status</Label>
-            <Select value={status} onValueChange={setStatus}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="discontinued">Discontinued</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="discontinued">Discontinued</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <Label>Stock Status</Label>
-            <Select value={stockStatus} onValueChange={setStockStatus}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Stock</SelectItem>
-                <SelectItem value="in_stock">In Stock</SelectItem>
-                <SelectItem value="low_stock">Low Stock</SelectItem>
-                <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="space-y-2">
+              <Label>Stock Status</Label>
+              <Select value={stockStatus} onValueChange={setStockStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Stock</SelectItem>
+                  <SelectItem value="in_stock">In Stock</SelectItem>
+                  <SelectItem value="low_stock">Low Stock</SelectItem>
+                  <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <Label>Brand</Label>
-            <Select value={brand} onValueChange={setBrand}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Brands</SelectItem>
-                {brands.map((brandName) => (
-                  <SelectItem key={brandName} value={brandName}>
-                    {brandName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+            <div className="space-y-2">
+              <Label>Brand</Label>
+              <Select value={brand} onValueChange={setBrand}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Brands</SelectItem>
+                  {brands.map((brandName) => (
+                    <SelectItem key={brandName} value={brandName}>
+                      {brandName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="minPrice">Min Price ($)</Label>
-            <Input
-              id="minPrice"
-              type="number"
-              placeholder="0.00"
-              value={minPrice}
-              onChange={(e) => setMinPrice(e.target.value)}
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="minPrice">Min Price ($)</Label>
+              <Input
+                id="minPrice"
+                type="number"
+                placeholder="0.00"
+                value={minPrice}
+                onChange={(e) => setMinPrice(e.target.value)}
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="maxPrice">Max Price ($)</Label>
-            <Input
-              id="maxPrice"
-              type="number"
-              placeholder="1000.00"
-              value={maxPrice}
-              onChange={(e) => setMaxPrice(e.target.value)}
-            />
+            <div className="space-y-2">
+              <Label htmlFor="maxPrice">Max Price ($)</Label>
+              <Input
+                id="maxPrice"
+                type="number"
+                placeholder="1000.00"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(e.target.value)}
+              />
+            </div>
           </div>
-        </div>
-      </CardContent>
+        </CardContent>
+      )}
     </Card>
   )
 }

@@ -52,9 +52,10 @@ export type Product = {
 interface ProductsPageContentProps {
   initialProductId?: string | null
   initialSearch?: string | null
+  initialStockStatus?: string | null
 }
 
-export function ProductsPageContent({ initialProductId, initialSearch }: ProductsPageContentProps) {
+export function ProductsPageContent({ initialProductId, initialSearch, initialStockStatus }: ProductsPageContentProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const productsFromDB = useQuery(api.products.getProductsWithProviderData)
@@ -173,6 +174,7 @@ export function ProductsPageContent({ initialProductId, initialSearch }: Product
             products={products}
             onFilteredProductsChange={setFilteredProducts}
             initialSearch={initialSearch}
+            initialStockStatus={initialStockStatus}
           />
         }
         collapseOnProductInspect={!!initialProductId}

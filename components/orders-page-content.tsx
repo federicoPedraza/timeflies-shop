@@ -58,9 +58,10 @@ export type Order = {
 interface OrdersPageContentProps {
   initialOrderId?: string | null
   initialSearch?: string | null
+  initialOrderStatus?: string | null
 }
 
-export function OrdersPageContent({ initialOrderId, initialSearch }: OrdersPageContentProps) {
+export function OrdersPageContent({ initialOrderId, initialSearch, initialOrderStatus }: OrdersPageContentProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const ordersFromDB = useQuery(api.orders.getOrdersWithProviderData)
@@ -69,6 +70,29 @@ export function OrdersPageContent({ initialOrderId, initialSearch }: OrdersPageC
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [inspectedOrder, setInspectedOrder] = useState<Order | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+
+  // Helper to parse YYYY-MM-DD as local date
+  function parseLocalDate(str?: string | null): Date | undefined {
+    if (!str) return undefined;
+    const [y, m, d] = str.split('-').map(Number);
+    if (!y || !m || !d) return undefined;
+    return new Date(y, m - 1, d);
+  }
+
+  // Parse date filters from URL
+  const urlDate = searchParams.get('date')
+  const urlDateFrom = searchParams.get('date_from')
+  const urlDateTo = searchParams.get('date_to')
+  let initialDateFrom: Date | undefined = undefined
+  let initialDateTo: Date | undefined = undefined
+  if (urlDate) {
+    // If 'date' is present, filter for that day only
+    initialDateFrom = parseLocalDate(urlDate)
+    initialDateTo = parseLocalDate(urlDate)
+  } else {
+    if (urlDateFrom) initialDateFrom = parseLocalDate(urlDateFrom)
+    if (urlDateTo) initialDateTo = parseLocalDate(urlDateTo)
+  }
 
     // Update URL when inspected order changes
   const updateURL = useCallback((orderId: string | null) => {
@@ -161,6 +185,9 @@ export function OrdersPageContent({ initialOrderId, initialSearch }: OrdersPageC
             orders={orders}
             onFilteredOrdersChange={setFilteredOrders}
             initialSearch={initialSearch}
+            initialOrderStatus={initialOrderStatus}
+            initialDateFrom={initialDateFrom}
+            initialDateTo={initialDateTo}
           />
         }
         collapseOnOrderInspect={!!initialOrderId}

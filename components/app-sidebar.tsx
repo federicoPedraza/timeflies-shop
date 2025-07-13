@@ -1,6 +1,6 @@
 "use client"
 
-import { BarChart3, Clock, Home, Package, Settings, ShoppingCart, TrendingUp, Users } from "lucide-react"
+import { BarChart3, Clock, Home, Package, Settings, ShoppingCart, TrendingUp, Users, Linkedin } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { usePathname } from "next/navigation"
 import { useTiendanubeStatus } from "@/hooks/use-tiendanube-status"
@@ -108,10 +108,15 @@ export function AppSidebar() {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <div className="flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground">
-          <TrendingUp className="h-3 w-3" />
-          <span>Sales up 12% this month</span>
-        </div>
+        <a
+          href="https://www.linkedin.com/in/federico-pedraza/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-2 py-2 text-xs text-muted-foreground opacity-30 hover:opacity-100 transition-opacity duration-200"
+        >
+          <Linkedin className="h-3 w-3" />
+          <span>LinkedIn</span>
+        </a>
       </SidebarFooter>
     </Sidebar>
   )

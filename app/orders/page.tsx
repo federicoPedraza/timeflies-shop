@@ -9,13 +9,19 @@ function OrdersPageWithSearchParams() {
   const searchParams = useSearchParams()
   const [orderId, setOrderId] = useState<string | null>(null)
   const [initialSearch, setInitialSearch] = useState<string | null>(null)
+  const [initialOrderStatus, setInitialOrderStatus] = useState<string | null>(null)
 
   useEffect(() => {
     setOrderId(searchParams.get('order'))
     setInitialSearch(searchParams.get('search'))
+    setInitialOrderStatus(searchParams.get('orderStatus'))
   }, [searchParams])
 
-  return <OrdersPageContent initialOrderId={orderId} initialSearch={initialSearch} />
+  return <OrdersPageContent
+    initialOrderId={orderId}
+    initialSearch={initialSearch}
+    initialOrderStatus={initialOrderStatus}
+  />
 }
 
 export default function OrdersPage() {

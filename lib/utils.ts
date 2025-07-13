@@ -11,19 +11,14 @@ export function capitalizeFirstLetter(str: string): string {
 
 // Price formatting utilities
 export function formatPrice(price: number): string {
-  // If price is zero, return "Price on request"
-  if (price === 0) {
-    return "Price on request"
-  }
-
   // Convert to string and split by decimal point
   const [wholePart, decimalPart] = price.toFixed(2).split('.')
 
   // Add dots for thousands separators
   const formattedWhole = wholePart.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
 
-  // Return with comma for decimal separator
-  return `${formattedWhole},${decimalPart}`
+  // Return with dollar sign and comma for decimal separator
+  return `$${formattedWhole},${decimalPart}`
 }
 
 // Convert number to words (English)

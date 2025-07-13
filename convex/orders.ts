@@ -253,56 +253,72 @@ export const getRevenueStats = query({
     for (const order of paidOrders) {
       try {
         const productsData = JSON.parse(order.products);
+        let orderRevenue = 0;
+        let orderCost = 0;
+        let orderProfit = 0;
+        let orderClocksSold = 0;
 
         for (const product of productsData) {
           const productId = product.id || product.product_id;
           const quantity = product.quantity || 1;
-          const price = parseFloat(product.price || "0") / 100; // Convertir de centavos
+          const price = parseFloat(product.price || "0"); // NO convertir de centavos
 
           // Buscar el producto en la base de datos
           const dbProduct = products.find(p => p.tiendanube_id === parseInt(productId));
 
+          let cost = 0;
+          let isEstimatedCost = false;
+
           if (dbProduct && dbProduct.cost) {
-            const cost = dbProduct.cost / 100; // Convertir de centavos
-            const revenue = price * quantity; // Revenue es el precio de venta
-            const productCost = cost * quantity;
-            const profit = revenue - productCost;
-
-            totalRevenue += revenue;
-            totalCost += productCost;
-            totalProfit += profit;
-            totalClocksSold += quantity;
-
-            // Agrupar por producto
-            const productKey = dbProduct.tiendanube_sku || productId.toString();
-            if (!revenueByProduct[productKey]) {
-              revenueByProduct[productKey] = { revenue: 0, cost: 0, profit: 0, quantity: 0 };
-            }
-            revenueByProduct[productKey].revenue += revenue;
-            revenueByProduct[productKey].cost += productCost;
-            revenueByProduct[productKey].profit += profit;
-            revenueByProduct[productKey].quantity += quantity;
+            // Usar costo real si existe - NO convertir de centavos
+            cost = dbProduct.cost;
           } else {
-            // Si no encontramos el producto o no tiene costo, usar el precio como revenue
-            const revenue = price * quantity;
-            totalRevenue += revenue;
-            totalClocksSold += quantity;
-
-            console.log(`⚠️ [getRevenueStats] Producto sin costo encontrado:`, {
-              productId,
-              price,
-              quantity,
-              revenue,
-              dbProductFound: !!dbProduct,
-              hasCost: dbProduct ? !!dbProduct.cost : false
-            });
+            // Usar costo estimado (60% del precio de venta) si no hay costo real
+            cost = price * 0.6; // 60% del precio como costo estimado
+            isEstimatedCost = true;
+            console.log(`⚠️ [getRevenueStats] Usando costo estimado para producto ${productId}: precio=${price}, costo estimado=${cost}`);
           }
+
+          const revenue = price * quantity; // Revenue es el precio de venta
+          const productCost = cost * quantity;
+          const profit = revenue - productCost;
+
+          orderRevenue += revenue;
+          orderCost += productCost;
+          orderProfit += profit;
+          orderClocksSold += quantity;
+
+          // Agrupar por producto
+          const productKey = dbProduct?.tiendanube_sku || productId.toString();
+          if (!revenueByProduct[productKey]) {
+            revenueByProduct[productKey] = { revenue: 0, cost: 0, profit: 0, quantity: 0 };
+          }
+          revenueByProduct[productKey].revenue += revenue;
+          revenueByProduct[productKey].cost += productCost;
+          revenueByProduct[productKey].profit += profit;
+          revenueByProduct[productKey].quantity += quantity;
         }
+
+        // Verificar si el revenue calculado coincide con el total de la orden
+        const orderTotal = parseFloat(order.total || "0");
+        if (Math.abs(orderRevenue - orderTotal) > 1) { // Tolerancia de 1 unidad
+          console.log(`⚠️ [getRevenueStats] Revenue calculado (${orderRevenue}) no coincide con total de orden (${orderTotal}) para orden ${order.tiendanube_id}`);
+          // Usar el total de la orden como revenue y recalcular profit
+          orderRevenue = orderTotal;
+          orderProfit = orderRevenue - orderCost;
+        }
+
+        totalRevenue += orderRevenue;
+        totalCost += orderCost;
+        totalProfit += orderProfit;
+        totalClocksSold += orderClocksSold;
+
       } catch (error) {
         console.error(`❌ [getRevenueStats] Error procesando orden ${order.tiendanube_id}:`, error);
         // Si hay error al parsear, usar el total de la orden
-        const orderTotal = parseFloat(order.total || "0") / 100;
+        const orderTotal = parseFloat(order.total || "0"); // NO convertir de centavos
         totalRevenue += orderTotal;
+        // No podemos calcular cost/profit para esta orden, solo revenue
       }
     }
 
@@ -335,6 +351,68 @@ export const getRevenueStats = query({
   },
 });
 
+// Función para obtener estadísticas de revenue potencial (todas las órdenes no canceladas)
+export const getPotentialRevenueStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const orders = await ctx.db.query("tiendanube_orders").collect();
+
+    // Filtrar órdenes no canceladas (todas excepto las canceladas)
+    const nonCancelledOrders = orders.filter(order => order.status !== "cancelled");
+
+    // Filtrar órdenes pagadas para calcular revenue actual
+    const paidOrders = orders.filter(order => order.payment_status === "paid");
+
+    let potentialRevenue = 0;
+    let currentRevenue = 0;
+
+    // Calcular revenue potencial (todas las órdenes no canceladas)
+    for (const order of nonCancelledOrders) {
+      try {
+        const orderTotal = parseFloat(order.total || "0"); // NO convertir de centavos
+        potentialRevenue += orderTotal;
+      } catch (error) {
+        console.error(`❌ [getPotentialRevenueStats] Error procesando orden ${order.tiendanube_id}:`, error);
+      }
+    }
+
+    // Calcular revenue actual (solo órdenes pagadas)
+    for (const order of paidOrders) {
+      try {
+        const orderTotal = parseFloat(order.total || "0"); // NO convertir de centavos
+        currentRevenue += orderTotal;
+      } catch (error) {
+        console.error(`❌ [getPotentialRevenueStats] Error procesando orden pagada ${order.tiendanube_id}:`, error);
+      }
+    }
+
+    // Calcular porcentaje de revenue faltante
+    const missingRevenuePercentage = potentialRevenue > 0
+      ? ((potentialRevenue - currentRevenue) / potentialRevenue) * 100
+      : 0;
+
+    const result = {
+      potentialRevenue: Math.round(potentialRevenue * 100) / 100,
+      currentRevenue: Math.round(currentRevenue * 100) / 100,
+      missingRevenue: Math.round((potentialRevenue - currentRevenue) * 100) / 100,
+      missingRevenuePercentage: Math.round(missingRevenuePercentage * 100) / 100,
+      totalNonCancelledOrders: nonCancelledOrders.length,
+      totalPaidOrders: paidOrders.length,
+    };
+
+    console.log(`💰 [getPotentialRevenueStats] Resultado final:`, {
+      potentialRevenue: result.potentialRevenue,
+      currentRevenue: result.currentRevenue,
+      missingRevenue: result.missingRevenue,
+      missingRevenuePercentage: result.missingRevenuePercentage,
+      totalNonCancelledOrders: result.totalNonCancelledOrders,
+      totalPaidOrders: result.totalPaidOrders,
+    });
+
+    return result;
+  },
+});
+
 // Función para obtener todas las órdenes con datos transformados para el UI
 export const getOrdersWithProviderData = query({
   args: {},
@@ -351,7 +429,7 @@ export const getOrdersWithProviderData = query({
           id: product.id?.toString() || product.product_id?.toString() || Math.random().toString(),
           name: product.name || "Product without name",
           category: product.category || "No category",
-          price: parseFloat(product.price || "0") / 100, // Convertir de centavos
+          price: parseFloat(product.price || "0"), // NO convertir de centavos
           quantity: product.quantity || 1,
           image: product.image?.src || "/placeholder.svg",
         }));
@@ -404,9 +482,9 @@ export const getOrdersWithProviderData = query({
       }
 
       // Calcular totales
-      const subtotal = parseFloat(order.subtotal || "0") / 100;
-      const total = parseFloat(order.total || "0") / 100;
-      const discount = parseFloat(order.discount || "0") / 100;
+      const subtotal = parseFloat(order.subtotal || "0"); // NO convertir de centavos
+      const total = parseFloat(order.total || "0"); // NO convertir de centavos
+      const discount = parseFloat(order.discount || "0"); // NO convertir de centavos
       let shippingCost = 0;
       let shippingInfo = null;
 
@@ -415,10 +493,10 @@ export const getOrdersWithProviderData = query({
         try {
           const shippingData = JSON.parse(order.previous_total_shipping_cost);
           if (shippingData && typeof shippingData === 'object') {
-            shippingCost = (shippingData.consumer_cost || 0) / 100;
+            shippingCost = (shippingData.consumer_cost || 0); // NO convertir de centavos
             shippingInfo = {
-              consumer_cost: (shippingData.consumer_cost || 0) / 100,
-              merchant_cost: (shippingData.merchant_cost || 0) / 100,
+              consumer_cost: (shippingData.consumer_cost || 0), // NO convertir de centavos
+              merchant_cost: (shippingData.merchant_cost || 0), // NO convertir de centavos
             };
           }
         } catch (error) {
@@ -508,5 +586,57 @@ export const getOrdersWithProviderData = query({
     });
 
     return ordersWithDetails;
+  },
+});
+
+// Función para obtener datos de revenue diario de los últimos 30 días
+export const getDailyRevenueData = query({
+  args: { days: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const days = args.days || 30;
+    const orders = await ctx.db.query("tiendanube_orders").collect();
+
+    // Filtrar solo órdenes pagadas
+    const paidOrders = orders.filter(order => order.payment_status === "paid");
+
+    // Crear un mapa para agrupar revenue por fecha
+    const revenueByDate: Record<string, number> = {};
+
+    // Inicializar todos los días con 0
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateString = date.toISOString().split('T')[0];
+      revenueByDate[dateString] = 0;
+    }
+
+    // Calcular revenue por día
+    for (const order of paidOrders) {
+      try {
+        const orderDate = new Date(order.created_at);
+        const dateString = orderDate.toISOString().split('T')[0];
+
+        // Solo incluir si está dentro del rango de días solicitado
+        const daysDiff = Math.floor((today.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysDiff < days) {
+          const orderTotal = parseFloat(order.total || "0"); // NO convertir de centavos
+          revenueByDate[dateString] = (revenueByDate[dateString] || 0) + orderTotal;
+        }
+      } catch (error) {
+        console.error(`❌ [getDailyRevenueData] Error procesando orden ${order.tiendanube_id}:`, error);
+      }
+    }
+
+    // Convertir a array de objetos con fecha y revenue
+    const dailyRevenueData = Object.entries(revenueByDate).map(([date, revenue]) => ({
+      date,
+      revenue: Math.round(revenue * 100) / 100, // Redondear a 2 decimales
+    }));
+
+    // Ordenar por fecha
+    dailyRevenueData.sort((a, b) => a.date.localeCompare(b.date));
+
+    return dailyRevenueData;
   },
 });

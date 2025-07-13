@@ -210,6 +210,47 @@ export const getSyncStats = query({
   },
 });
 
+// Función para calcular el costo total del inventario
+export const getInventoryCosts = query({
+  args: {},
+  handler: async (ctx) => {
+    // Obtener todos los productos de Tiendanube
+    const tiendanubeProducts = await ctx.db.query("tiendanube_products").collect();
+
+    // Debug: Log para verificar que la query se está ejecutando
+    console.log(`💰 [getInventoryCosts] Total productos: ${tiendanubeProducts.length}`);
+
+    let totalInventoryCost = 0;
+    let productsWithCost = 0;
+    let productsWithoutCost = 0;
+
+    // Calcular el costo total del inventario
+    for (const product of tiendanubeProducts) {
+      if (product.cost !== null && product.stock > 0) {
+        // NO convertir de centavos - usar como números enteros
+        const costPerUnit = product.cost; // NO convertir de centavos
+        const productInventoryCost = costPerUnit * product.stock;
+        totalInventoryCost += productInventoryCost;
+        productsWithCost++;
+
+        console.log(`💰 [getInventoryCosts] Producto ${product.tiendanube_id}: costo=${costPerUnit}, stock=${product.stock}, total=${productInventoryCost}`);
+      } else {
+        productsWithoutCost++;
+      }
+    }
+
+    const result = {
+      totalInventoryCost: Math.round(totalInventoryCost * 100) / 100, // Redondear a 2 decimales
+      productsWithCost,
+      productsWithoutCost,
+      totalProducts: tiendanubeProducts.length,
+    };
+
+    console.log(`💰 [getInventoryCosts] Resultado:`, result);
+    return result;
+  },
+});
+
 // Función para obtener estadísticas del dashboard
 export const getDashboardStats = query({
   args: {},
@@ -233,8 +274,12 @@ export const getDashboardStats = query({
 
     // Contar productos activos (con stock > 0)
     const activeProducts = tiendanubeProducts.filter(product => product.stock > 0).length;
+    const outOfStockProducts = tiendanubeProducts.filter(product => product.stock === 0).length;
+    const totalProducts = tiendanubeProducts.length;
 
     console.log(`📊 [getDashboardStats] Productos activos: ${activeProducts}`);
+    console.log(`📊 [getDashboardStats] Productos sin stock: ${outOfStockProducts}`);
+    console.log(`📊 [getDashboardStats] Total productos: ${totalProducts}`);
 
     // Obtener todas las órdenes
     const orders = await ctx.db.query("tiendanube_orders").collect();
@@ -244,20 +289,20 @@ export const getDashboardStats = query({
     let totalRevenue = 0;
     let totalClocksSold = 0;
 
-    // Filtrar solo órdenes pagadas
-    const paidOrders = orders.filter(order => order.payment_status === "paid");
+    // Incluir todas las órdenes (pagadas y no pagadas)
+    const validOrders = orders;
 
-    console.log(`📊 [getDashboardStats] Órdenes pagadas: ${paidOrders.length} de ${totalOrders}`);
+    console.log(`�� [getDashboardStats] Órdenes totales consideradas para clocks sold: ${validOrders.length} de ${totalOrders}`);
 
-    for (const order of paidOrders) {
+    for (const order of validOrders) {
       try {
         // Parsear los productos de la orden
         const productsData = JSON.parse(order.products);
 
         for (const product of productsData) {
           const productId = product.id || product.product_id;
-          const quantity = product.quantity || 1;
-          const price = parseFloat(product.price || "0") / 100; // Convertir de centavos
+          const quantity = Number(product.quantity || 1);
+          const price = parseFloat(product.price || "0"); // NO convertir de centavos
 
           // Buscar el producto en la base de datos para obtener el costo
           const dbProduct = tiendanubeProducts.find(p => p.tiendanube_id === parseInt(productId));
@@ -276,13 +321,14 @@ export const getDashboardStats = query({
       } catch (error) {
         console.error(`❌ [getDashboardStats] Error procesando orden ${order.tiendanube_id}:`, error);
         // Si hay error al parsear, usar el total de la orden
-        const orderTotal = parseFloat(order.total || "0") / 100;
+        const orderTotal = parseFloat(order.total || "0"); // NO convertir de centavos
         totalRevenue += orderTotal;
       }
     }
 
         const result = {
-      activeProducts,
+      outOfStockProducts,
+      totalProducts,
       totalRevenue: Math.round(totalRevenue * 100) / 100, // Redondear a 2 decimales
       totalOrders,
       totalClocksSold,
@@ -858,6 +904,303 @@ export const getWebhookLogsWithInternalIds = query({
     return {
       logs: enrichedLogs,
       hasMore,
+    };
+  },
+});
+
+export const getClocksSoldPerDay = query({
+  args: { days: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const days = args.days ?? 100;
+    const orders = await ctx.db.query("tiendanube_orders").collect();
+    // Optionally, exclude cancelled orders if needed:
+    // const validOrders = orders.filter(order => order.status !== "cancelled");
+    const validOrders = orders; // include all orders (paid and unpaid)
+    const clocksSoldByDate: Record<string, number> = {};
+    for (const order of validOrders) {
+      const date = new Date(order.created_at).toISOString().split("T")[0];
+      let clocks = 0;
+      try {
+        const products = JSON.parse(order.products);
+        if (Array.isArray(products)) {
+          clocks = products.reduce((sum, p) => sum + Number(p.quantity || 1), 0);
+        }
+      } catch {}
+      clocksSoldByDate[date] = (clocksSoldByDate[date] || 0) + clocks;
+    }
+    // Only return the last N days
+    const today = new Date();
+    const result: Record<string, number> = {};
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const dateString = d.toISOString().split("T")[0];
+      result[dateString] = clocksSoldByDate[dateString] || 0;
+    }
+    return result;
+  },
+});
+
+// Query to get product sales ranking for the last month (non-cancelled orders)
+export const getProductSalesRanking = query({
+  args: {},
+  handler: async (ctx) => {
+    const oneMonthAgo = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days ago
+    console.log(`📊 [getProductSalesRanking] One month ago timestamp: ${oneMonthAgo}`)
+    console.log(`📊 [getProductSalesRanking] One month ago date: ${new Date(oneMonthAgo).toISOString()}`)
+    console.log(`📊 [getProductSalesRanking] Current timestamp: ${Date.now()}`)
+    console.log(`📊 [getProductSalesRanking] Current date: ${new Date().toISOString()}`)
+
+    // Get all products, orders, and product images
+    const products = await ctx.db.query("tiendanube_products").collect();
+    const orders = await ctx.db.query("tiendanube_orders").collect();
+    const productImages = await ctx.db.query("tiendanube_product_images").collect();
+
+    console.log(`📊 [getProductSalesRanking] Available products in database:`, products.map(p => ({ id: p.tiendanube_id, name: p.name, sku: p.tiendanube_sku })))
+    console.log(`📊 [getProductSalesRanking] Available images:`, productImages.map(img => ({ product_id: img.product_id, src: img.src, position: img.position })))
+
+    // Debug: Check if there are any images at all
+    if (productImages.length === 0) {
+      console.log(`⚠️ [getProductSalesRanking] No images found in database at all!`)
+    } else {
+      console.log(`📸 [getProductSalesRanking] Total images in database: ${productImages.length}`)
+      console.log(`📸 [getProductSalesRanking] Unique product_ids with images:`, [...new Set(productImages.map(img => img.product_id))])
+      console.log(`📸 [getProductSalesRanking] Sample image URLs:`, productImages.slice(0, 3).map(img => img.src))
+    }
+
+            // Filter orders from the last 6 months and exclude cancelled orders
+    // Include all orders that are not cancelled, regardless of payment status
+    const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000); // 6 months ago
+
+    const recentOrders = orders.filter(order => {
+      // Try to parse created_at as a date
+      let orderDate: number;
+      try {
+        orderDate = new Date(order.created_at).getTime();
+      } catch {
+        // Fallback to added_at if created_at parsing fails
+        orderDate = order.added_at;
+      }
+
+      return orderDate >= sixMonthsAgo && order.status !== "cancelled";
+    });
+
+    console.log(`📊 [getProductSalesRanking] Found ${recentOrders.length} recent orders (last 6 months, non-cancelled)`)
+    console.log(`📊 [getProductSalesRanking] Order statuses:`, recentOrders.map(o => ({
+      id: o.tiendanube_id,
+      status: o.status,
+      payment: o.payment_status,
+      created: o.created_at,
+      added: o.added_at
+    })))
+
+    // Create a map to track sales by product
+    const productSales: Record<string, {
+      productId: string;
+      tiendanubeId: number;
+      _id?: string; // Database ID for navigation
+      name: string;
+      sku: string;
+      images: string[];
+      quantitySold: number;
+      revenue: number;
+      price: number;
+    }> = {};
+
+        // Process each order
+    for (const order of recentOrders) {
+      try {
+        const productsData = JSON.parse(order.products);
+        console.log(`📊 [getProductSalesRanking] Processing order ${order.tiendanube_id} with ${productsData.length} products`)
+
+        for (const product of productsData) {
+          const productId = product.id || product.product_id;
+          if (!productId) {
+            console.log(`⚠️ [getProductSalesRanking] Product without ID in order ${order.tiendanube_id}:`, product)
+            continue;
+          }
+
+          const quantity = Number(product.quantity || 1);
+          const price = parseFloat(product.price || "0"); // NO convertir de centavos
+          const revenue = price * quantity;
+
+          // Debug: Check if the product has image data in the order
+          if (product.image) {
+            console.log(`🖼️ [getProductSalesRanking] Product ${productId} has image in order:`, product.image)
+          }
+
+          console.log(`📊 [getProductSalesRanking] Product ${productId}: qty=${quantity}, price=$${price}, revenue=$${revenue}`)
+
+          // The productId from orders is often a variant ID, not the main product ID
+          // We need to find the actual product ID to match with images
+          let actualProductId = parseInt(productId);
+
+          // If the product has image data in the order, use that product_id
+          if (product.image && product.image.product_id) {
+            actualProductId = product.image.product_id;
+            console.log(`🖼️ [getProductSalesRanking] Using product_id from image data: ${actualProductId} (variant was: ${productId})`)
+          }
+
+          // Find the product in our database
+          const dbProduct = products.find(p => p.tiendanube_id === actualProductId);
+
+          const key = actualProductId.toString();
+
+                      if (dbProduct) {
+              // Product exists in database
+              if (!productSales[key]) {
+                                // Find the first image for this product using the actual product ID
+                const productImagesForProduct = productImages.filter(img => img.product_id === actualProductId);
+                const firstImage = productImagesForProduct.sort((a, b) => a.position - b.position)[0];
+                console.log(`📸 [getProductSalesRanking] Found ${productImagesForProduct.length} images for product ${actualProductId}:`, productImagesForProduct.map(img => img.src))
+
+                // Debug: Check all images to see if there's a mismatch
+                if (productImagesForProduct.length === 0) {
+                  console.log(`🔍 [getProductSalesRanking] No images found for product ${actualProductId}. Checking all images...`)
+                  const allImagesForAnyProduct = productImages.filter(img => img.product_id);
+                  console.log(`🔍 [getProductSalesRanking] All available product_ids in images:`, [...new Set(allImagesForAnyProduct.map(img => img.product_id))])
+                  console.log(`🔍 [getProductSalesRanking] Product actualProductId: ${actualProductId}, type: ${typeof actualProductId}`)
+
+                  // Try alternative lookup methods
+                  console.log(`🔍 [getProductSalesRanking] Trying alternative lookups...`)
+                  const byTiendanubeId = productImages.filter(img => img.tiendanube_id === actualProductId);
+                  console.log(`🔍 [getProductSalesRanking] Images by tiendanube_id: ${byTiendanubeId.length}`)
+
+                  if (byTiendanubeId.length > 0) {
+                    console.log(`🔍 [getProductSalesRanking] Found images by tiendanube_id! Using these instead.`)
+                    const firstImageByTiendanubeId = byTiendanubeId.sort((a, b) => a.position - b.position)[0];
+                    productSales[key] = {
+                      productId: key,
+                      tiendanubeId: actualProductId,
+                      _id: dbProduct._id,
+                      name: dbProduct.name || `Product ${actualProductId}`,
+                      sku: dbProduct.tiendanube_sku || `TF-${actualProductId}`,
+                      images: [firstImageByTiendanubeId.src],
+                      quantitySold: 0,
+                      revenue: 0,
+                      price: (dbProduct.price || 0), // NO convertir de centavos
+                    };
+                  }
+                }
+
+                productSales[key] = {
+                  productId: key,
+                  tiendanubeId: actualProductId,
+                  _id: dbProduct._id,
+                  name: dbProduct.name || `Product ${actualProductId}`,
+                  sku: dbProduct.tiendanube_sku || `TF-${actualProductId}`,
+                  images: firstImage ? [firstImage.src] : [],
+                  quantitySold: 0,
+                  revenue: 0,
+                  price: (dbProduct.price || 0), // NO convertir de centavos
+                };
+              }
+
+              productSales[key].quantitySold += quantity;
+              productSales[key].revenue += revenue;
+              console.log(`✅ [getProductSalesRanking] Added to product ${dbProduct.name}: qty=${productSales[key].quantitySold}, revenue=$${productSales[key].revenue}`)
+                        } else {
+              // Product not in database, create entry from order data
+              if (!productSales[key]) {
+                // Try to find images for this product ID using the actual product ID
+                const productImagesForProduct = productImages.filter(img => img.product_id === actualProductId);
+                const firstImage = productImagesForProduct.sort((a, b) => a.position - b.position)[0];
+                console.log(`📸 [getProductSalesRanking] Found ${productImagesForProduct.length} images for order-only product ${productId} (actual product: ${actualProductId}):`, productImagesForProduct.map(img => img.src))
+
+                // Debug: Check all images to see if there's a mismatch
+                if (productImagesForProduct.length === 0) {
+                  console.log(`🔍 [getProductSalesRanking] No images found for order-only product ${productId} (actual product: ${actualProductId}). Checking all images...`)
+                  const allImagesForAnyProduct = productImages.filter(img => img.product_id);
+                  console.log(`🔍 [getProductSalesRanking] All available product_ids in images:`, [...new Set(allImagesForAnyProduct.map(img => img.product_id))])
+                  console.log(`🔍 [getProductSalesRanking] Order product ID: ${productId}, actual product ID: ${actualProductId}, type: ${typeof actualProductId}`)
+
+                  // Try alternative lookup methods
+                  console.log(`🔍 [getProductSalesRanking] Trying alternative lookups for order-only product...`)
+                  const byTiendanubeId = productImages.filter(img => img.tiendanube_id === actualProductId);
+                  console.log(`🔍 [getProductSalesRanking] Images by tiendanube_id for order-only product: ${byTiendanubeId.length}`)
+
+                  if (byTiendanubeId.length > 0) {
+                    console.log(`🔍 [getProductSalesRanking] Found images by tiendanube_id for order-only product! Using these instead.`)
+                    const firstImageByTiendanubeId = byTiendanubeId.sort((a, b) => a.position - b.position)[0];
+                    productSales[key] = {
+                      productId: key,
+                      tiendanubeId: actualProductId,
+                      name: `Product ${actualProductId} (from orders)`,
+                      sku: `TF-${actualProductId}`,
+                      images: [firstImageByTiendanubeId.src],
+                      quantitySold: 0,
+                      revenue: 0,
+                      price: price,
+                    };
+                  }
+                }
+
+                productSales[key] = {
+                  productId: key,
+                  tiendanubeId: parseInt(productId),
+                  name: `Product ${productId} (from orders)`,
+                  sku: `TF-${productId}`,
+                  images: firstImage ? [firstImage.src] : [],
+                  quantitySold: 0,
+                  revenue: 0,
+                  price: price,
+                };
+              }
+
+              productSales[key].quantitySold += quantity;
+              productSales[key].revenue += revenue;
+              console.log(`✅ [getProductSalesRanking] Added to order-only product ${productId}: qty=${productSales[key].quantitySold}, revenue=$${productSales[key].revenue}`)
+            }
+        }
+      } catch (error) {
+        console.error(`Error processing order ${order.tiendanube_id}:`, error);
+      }
+    }
+
+        // Convert to array and sort by quantity sold (descending)
+    const salesRanking = Object.values(productSales)
+      .filter(product => product.quantitySold > 0) // Only include products that were actually sold
+      .sort((a, b) => b.quantitySold - a.quantitySold);
+
+    console.log(`📊 [getProductSalesRanking] Final results: ${salesRanking.length} products with sales`)
+    console.log(`📊 [getProductSalesRanking] Sales ranking:`, salesRanking.map(p => ({ name: p.name, qty: p.quantitySold, revenue: p.revenue })))
+
+    return salesRanking;
+  },
+});
+
+// Función para verificar datos de costos en productos
+export const getProductsCostData = query({
+  args: {},
+  handler: async (ctx) => {
+    const products = await ctx.db.query("tiendanube_products").collect();
+
+    const productsWithCost = products.filter(p => p.cost !== null);
+    const productsWithoutCost = products.filter(p => p.cost === null);
+
+    const sampleProductsWithCost = productsWithCost.slice(0, 5).map(p => ({
+      id: p.tiendanube_id,
+      name: p.name,
+      price: p.price,
+      cost: p.cost,
+      sku: p.tiendanube_sku
+    }));
+
+    const sampleProductsWithoutCost = productsWithoutCost.slice(0, 5).map(p => ({
+      id: p.tiendanube_id,
+      name: p.name,
+      price: p.price,
+      cost: p.cost,
+      sku: p.tiendanube_sku
+    }));
+
+    return {
+      totalProducts: products.length,
+      productsWithCost: productsWithCost.length,
+      productsWithoutCost: productsWithoutCost.length,
+      sampleProductsWithCost,
+      sampleProductsWithoutCost,
+      costPercentage: products.length > 0 ? (productsWithCost.length / products.length) * 100 : 0
     };
   },
 });

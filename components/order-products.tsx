@@ -34,7 +34,7 @@ export function OrderProducts({ productsJson, currency }: OrderProductsProps) {
   }
 
   const formatCurrency = (amount: string) => {
-    const numAmount = parseFloat(amount) / 100; // TiendaNube uses cents
+    const numAmount = parseFloat(amount); // NO convertir de centavos - TiendaNube usa números enteros
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency || 'USD',

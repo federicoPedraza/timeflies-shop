@@ -26,18 +26,21 @@ interface OrdersFiltersProps {
   orders: Order[]
   onFilteredOrdersChange: (filteredOrders: Order[]) => void
   initialSearch?: string | null
+  initialOrderStatus?: string | null
+  initialDateFrom?: Date
+  initialDateTo?: Date
 }
 
-export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch }: OrdersFiltersProps) {
+export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch, initialOrderStatus, initialDateFrom, initialDateTo }: OrdersFiltersProps) {
   const [searchTerm, setSearchTerm] = useState(initialSearch || "")
-  const [orderStatus, setOrderStatus] = useState<string>("all")
+  const [orderStatus, setOrderStatus] = useState<string>(initialOrderStatus || "all")
   const [paymentStatus, setPaymentStatus] = useState<string>("all")
   const [paymentMethod, setPaymentMethod] = useState<string>("all")
-  const [dateFrom, setDateFrom] = useState<Date>()
-  const [dateTo, setDateTo] = useState<Date>()
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(initialDateFrom)
+  const [dateTo, setDateTo] = useState<Date | undefined>(initialDateTo)
   const [minAmount, setMinAmount] = useState("")
   const [maxAmount, setMaxAmount] = useState("")
-  const [isOptionsCollapsed, setIsOptionsCollapsed] = useState(false)
+  const [isOptionsCollapsed, setIsOptionsCollapsed] = useState(true)
 
   // Update search term when initialSearch prop changes
   useEffect(() => {
@@ -45,6 +48,13 @@ export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch }:
       setSearchTerm(initialSearch || "")
     }
   }, [initialSearch])
+
+  // Update order status when initialOrderStatus prop changes
+  useEffect(() => {
+    if (initialOrderStatus !== undefined) {
+      setOrderStatus(initialOrderStatus || "all")
+    }
+  }, [initialOrderStatus])
 
   useEffect(() => {
     let filtered = orders
@@ -72,11 +82,28 @@ export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch }:
     if (paymentMethod !== "all") {
       filtered = filtered.filter((order) => order.paymentMethod === paymentMethod)
     }
-    if (dateFrom) {
-      filtered = filtered.filter((order) => new Date(order.orderDate) >= dateFrom)
+    // Normalize dateFrom to start of day, dateTo to end of day
+    let normDateFrom: Date | undefined = dateFrom ? new Date(dateFrom) : undefined;
+    let normDateTo: Date | undefined = dateTo ? new Date(dateTo) : undefined;
+    if (normDateFrom) {
+      normDateFrom.setHours(0, 0, 0, 0);
     }
-    if (dateTo) {
-      filtered = filtered.filter((order) => new Date(order.orderDate) <= dateTo)
+    if (normDateTo) {
+      normDateTo.setHours(23, 59, 59, 999);
+    }
+    if (normDateFrom) {
+      filtered = filtered.filter((order) => {
+        const orderDate = new Date(order.orderDate);
+        orderDate.setHours(0, 0, 0, 0);
+        return orderDate >= normDateFrom!;
+      });
+    }
+    if (normDateTo) {
+      filtered = filtered.filter((order) => {
+        const orderDate = new Date(order.orderDate);
+        orderDate.setHours(0, 0, 0, 0);
+        return orderDate <= normDateTo!;
+      });
     }
     if (minAmount) {
       filtered = filtered.filter((order) => order.totalAmount >= Number.parseFloat(minAmount))

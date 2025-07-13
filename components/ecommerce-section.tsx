@@ -8,6 +8,7 @@ import { ExternalLink, ShoppingCart, RefreshCw, CheckCircle, AlertCircle, Webhoo
 import { useTiendanubeStatus } from "@/hooks/use-tiendanube-status"
 import { useProductSync } from "@/hooks/use-product-sync"
 import { useOrderSync } from "@/hooks/use-order-sync"
+import { useCheckoutSync } from "@/hooks/use-checkout-sync"
 import { useWebhookConfig } from "@/hooks/use-webhook-config"
 import { useWebhookStatus } from "@/hooks/use-webhook-status"
 import { useState } from "react"
@@ -16,10 +17,12 @@ export function EcommerceSection() {
   const { tiendanubeStatus, loading } = useTiendanubeStatus();
   const { syncing: syncingProducts, lastSyncResult: lastProductSyncResult, error: productError, syncProducts, clearError: clearProductError, clearLastSyncResult: clearLastProductSyncResult } = useProductSync();
   const { syncing: syncingOrders, lastSyncResult: lastOrderSyncResult, error: orderError, syncOrders, clearError: clearOrderError, clearLastSyncResult: clearLastOrderSyncResult } = useOrderSync();
+  const { syncing: syncingCheckouts, lastSyncResult: lastCheckoutSyncResult, error: checkoutError, syncCheckouts, clearError: clearCheckoutError, clearLastSyncResult: clearLastCheckoutSyncResult } = useCheckoutSync();
   const { configuring, lastResult, error: webhookError, configureWebhooks, clearError: clearWebhookError, clearLastResult: clearWebhookResult } = useWebhookConfig();
   const { checking: checkingWebhookStatus, webhookStatus, error: webhookStatusError, checkWebhookStatus, clearError: clearWebhookStatusError } = useWebhookStatus();
   const [showProductSyncResult, setShowProductSyncResult] = useState(false);
   const [showOrderSyncResult, setShowOrderSyncResult] = useState(false);
+  const [showCheckoutSyncResult, setShowCheckoutSyncResult] = useState(false);
   const [showWebhookResult, setShowWebhookResult] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
 
@@ -67,6 +70,18 @@ export function EcommerceSection() {
       setTimeout(() => {
         setShowOrderSyncResult(false);
         clearLastOrderSyncResult();
+      }, 5000);
+    }
+  };
+
+  const handleSyncCheckouts = async () => {
+    const result = await syncCheckouts('tiendanube');
+    if (result) {
+      setShowCheckoutSyncResult(true);
+      // Ocultar el resultado después de 5 segundos
+      setTimeout(() => {
+        setShowCheckoutSyncResult(false);
+        clearLastCheckoutSyncResult();
       }, 5000);
     }
   };
@@ -164,6 +179,18 @@ export function EcommerceSection() {
     return <RefreshCw className="h-4 w-4" />;
   };
 
+  const getCheckoutSyncButtonText = () => {
+    if (syncingCheckouts) return 'Syncing...';
+    return 'Sync Checkouts';
+  };
+
+  const getCheckoutSyncButtonIcon = () => {
+    if (syncingCheckouts) {
+      return <RefreshCw className="h-4 w-4 animate-spin" />;
+    }
+    return <RefreshCw className="h-4 w-4" />;
+  };
+
   return (
     <div className="space-y-6">
       {/* Sección de Conexión */}
@@ -213,6 +240,16 @@ export function EcommerceSection() {
                   {getOrderSyncButtonIcon()}
                   {getOrderSyncButtonText()}
                 </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSyncCheckouts}
+                  disabled={syncingCheckouts || !tiendanubeStatus?.status}
+                  className="flex items-center gap-2"
+                >
+                  {getCheckoutSyncButtonIcon()}
+                  {getCheckoutSyncButtonText()}
+                </Button>
                 <Button variant="outline" size="sm" asChild>
                   <a
                     href="https://timefliesdemo.mitiendanube.com/"
@@ -258,6 +295,25 @@ export function EcommerceSection() {
                   variant="ghost"
                   size="sm"
                   onClick={clearOrderError}
+                  className="mt-2 h-6 px-2 text-xs text-red-600 hover:text-red-800"
+                >
+                  Dismiss
+                </Button>
+              </div>
+            )}
+
+            {/* Mostrar errores de sincronización de checkouts */}
+            {checkoutError && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center gap-2 text-red-800">
+                  <AlertCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Checkout Sync Error</span>
+                </div>
+                <p className="text-sm text-red-700 mt-1">{checkoutError}</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearCheckoutError}
                   className="mt-2 h-6 px-2 text-xs text-red-600 hover:text-red-800"
                 >
                   Dismiss
@@ -326,6 +382,40 @@ export function EcommerceSection() {
                 {lastOrderSyncResult.summary.errors > 0 && (
                   <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
                     <span className="font-medium">Warnings:</span> {lastOrderSyncResult.summary.errors} errors occurred during sync
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Mostrar resultados de sincronización de checkouts */}
+            {showCheckoutSyncResult && lastCheckoutSyncResult && (
+              <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                <div className="flex items-center gap-2 text-purple-800 mb-3">
+                  <CheckCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Checkout Sync Completed Successfully</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-purple-700 font-medium">Total Checkouts:</span>
+                    <span className="ml-2 text-purple-600">{lastCheckoutSyncResult.summary.total_checkouts}</span>
+                  </div>
+                  <div>
+                    <span className="text-purple-700 font-medium">Added:</span>
+                    <span className="ml-2 text-purple-600">{lastCheckoutSyncResult.summary.added}</span>
+                  </div>
+                  <div>
+                    <span className="text-purple-700 font-medium">Updated:</span>
+                    <span className="ml-2 text-purple-600">{lastCheckoutSyncResult.summary.updated}</span>
+                  </div>
+                  <div>
+                    <span className="text-purple-700 font-medium">Errors:</span>
+                    <span className="ml-2 text-purple-600">{lastCheckoutSyncResult.summary.errors}</span>
+                  </div>
+                </div>
+                {lastCheckoutSyncResult.summary.errors > 0 && (
+                  <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+                    <span className="font-medium">Warnings:</span> {lastCheckoutSyncResult.summary.errors} errors occurred during sync
                   </div>
                 )}
               </div>

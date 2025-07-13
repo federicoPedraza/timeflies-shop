@@ -51,6 +51,13 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
     }
   }, [product]);
 
+  const handleOpenShop = useCallback(() => {
+    if (product?.handle) {
+      const shopUrl = `https://timefliesdemo.mitiendanube.com/productos/${product.handle}`;
+      window.open(shopUrl, "_blank");
+    }
+  }, [product]);
+
   const handleCopyProductId = useCallback(() => {
     navigator.clipboard.writeText(product.providerProductId);
     setProductIdCopied(true);
@@ -113,6 +120,17 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
                   >
                     <ExternalLink className="h-3 w-3" />
                     View in TiendaNube
+                  </Button>
+                )}
+                {product.handle && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleOpenShop}
+                    className="flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    View in shop
                   </Button>
                 )}
               </div>
