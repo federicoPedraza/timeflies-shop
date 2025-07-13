@@ -202,5 +202,14 @@ export default defineSchema({
     attributes: v.string(), // JSON string
     products: v.string(), // JSON string
     added_at: v.number(),
+    dismissed: v.optional(v.boolean()), // New field for dismissed checkouts
   }).index("by_tiendanube_id", ["tiendanube_id"]),
+  "user_logs": defineTable({
+    user_id: v.string(),
+    action: v.string(),
+    details: v.string(), // JSON string with additional details
+    timestamp: v.number(),
+    resource_type: v.optional(v.string()), // e.g., "checkout", "order", "product"
+    resource_id: v.optional(v.string()), // ID of the affected resource
+  }).index("by_user_id", ["user_id"]).index("by_timestamp", ["timestamp"]),
 });

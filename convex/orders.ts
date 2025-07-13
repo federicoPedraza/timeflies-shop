@@ -640,3 +640,55 @@ export const getDailyRevenueData = query({
     return dailyRevenueData;
   },
 });
+
+// Función para obtener datos de revenue potencial diario (todas las órdenes no canceladas)
+export const getDailyPotentialRevenueData = query({
+  args: { days: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const days = args.days || 30;
+    const orders = await ctx.db.query("tiendanube_orders").collect();
+
+    // Filtrar órdenes no canceladas (todas excepto las canceladas)
+    const nonCancelledOrders = orders.filter(order => order.status !== "cancelled");
+
+    // Crear un mapa para agrupar revenue potencial por fecha
+    const potentialRevenueByDate: Record<string, number> = {};
+
+    // Inicializar todos los días con 0
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      const dateString = date.toISOString().split('T')[0];
+      potentialRevenueByDate[dateString] = 0;
+    }
+
+    // Calcular revenue potencial por día
+    for (const order of nonCancelledOrders) {
+      try {
+        const orderDate = new Date(order.created_at);
+        const dateString = orderDate.toISOString().split('T')[0];
+
+        // Solo incluir si está dentro del rango de días solicitado
+        const daysDiff = Math.floor((today.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (daysDiff < days) {
+          const orderTotal = parseFloat(order.total || "0"); // NO convertir de centavos
+          potentialRevenueByDate[dateString] = (potentialRevenueByDate[dateString] || 0) + orderTotal;
+        }
+      } catch (error) {
+        console.error(`❌ [getDailyPotentialRevenueData] Error procesando orden ${order.tiendanube_id}:`, error);
+      }
+    }
+
+    // Convertir a array de objetos con fecha y revenue potencial
+    const dailyPotentialRevenueData = Object.entries(potentialRevenueByDate).map(([date, potentialRevenue]) => ({
+      date,
+      potentialRevenue: Math.round(potentialRevenue * 100) / 100, // Redondear a 2 decimales
+    }));
+
+    // Ordenar por fecha
+    dailyPotentialRevenueData.sort((a, b) => a.date.localeCompare(b.date));
+
+    return dailyPotentialRevenueData;
+  },
+});

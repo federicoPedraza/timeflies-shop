@@ -9,11 +9,12 @@ import { DollarSign, TrendingUp, BarChart3, Calendar, Package } from "lucide-rea
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { cn, formatPrice, numberToWords } from "@/lib/utils"
 import { useRouter } from "next/navigation"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from "recharts"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts"
 
 interface RevenueData {
   date: string
   revenue: number
+  potentialRevenue: number
   orders: number
   products: Array<{
     productId: string
@@ -34,6 +35,7 @@ const CHART_TYPES = [
 export function InventoryRevenueChart() {
   // Use backend analytics only
   const dailyRevenueData = useQuery(api.orders.getDailyRevenueData, { days: 7 })
+  const dailyPotentialRevenueData = useQuery(api.orders.getDailyPotentialRevenueData, { days: 7 })
   const salesRanking = useQuery(api.products.getProductSalesRanking)
   const router = useRouter()
   type ChartType = 'daily' | 'products';
@@ -55,17 +57,23 @@ export function InventoryRevenueChart() {
     }
   }, [dailyRevenueData])
 
-  // Compute daily orders and products sold from backend data
+  // Combine daily revenue and potential revenue data
   const dailyAnalytics = useMemo(() => {
-    if (!dailyRevenueData) return []
-    // You must have a backend query that returns orders and productsSold per day for true accuracy.
-    // For now, just show revenue per day and leave orders/productsSold as null.
+    if (!dailyRevenueData || !dailyPotentialRevenueData) return []
+
+    // Create a map of potential revenue by date
+    const potentialRevenueMap = new Map(
+      dailyPotentialRevenueData.map(item => [item.date, item.potentialRevenue])
+    )
+
+    // Combine the data
     return dailyRevenueData.map(day => ({
       ...day,
+      potentialRevenue: potentialRevenueMap.get(day.date) || 0,
       orders: null,
       productsSold: null
     }))
-  }, [dailyRevenueData])
+  }, [dailyRevenueData, dailyPotentialRevenueData])
 
   // Top products from backend
   const topProducts = useMemo(() => {
@@ -83,7 +91,7 @@ export function InventoryRevenueChart() {
       }))
   }, [salesRanking])
 
-  if (!dailyRevenueData || !salesRanking) {
+  if (!dailyRevenueData || !dailyPotentialRevenueData || !salesRanking) {
     return (
       <Card className="h-full flex flex-col">
         <CardHeader className="flex-shrink-0">
@@ -120,7 +128,9 @@ export function InventoryRevenueChart() {
 
   // Totals
   const totalRevenue = dailyRevenueData.reduce((sum, day) => sum + day.revenue, 0)
+  const totalPotentialRevenue = dailyPotentialRevenueData.reduce((sum, day) => sum + day.potentialRevenue, 0)
   const averageRevenue = dailyRevenueData.length > 0 ? totalRevenue / dailyRevenueData.length : 0
+  const averagePotentialRevenue = dailyPotentialRevenueData.length > 0 ? totalPotentialRevenue / dailyPotentialRevenueData.length : 0
 
   return (
     <TooltipProvider>
@@ -130,7 +140,7 @@ export function InventoryRevenueChart() {
             <div>
               <CardTitle>Inventory Revenue Chart</CardTitle>
               <p className="text-sm text-muted-foreground mt-2">
-                Daily revenue over the last 7 days
+                Daily revenue vs potential revenue over the last 7 days
               </p>
             </div>
             <div className="flex items-center gap-2">
@@ -193,15 +203,19 @@ export function InventoryRevenueChart() {
                         <RechartsTooltip
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
-                              const revenue = payload[0].value as number
+                              const revenue = payload.find(p => p.dataKey === 'revenue')?.value as number || 0
+                              const potentialRevenue = payload.find(p => p.dataKey === 'potentialRevenue')?.value as number || 0
                               return (
                                 <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
                                   <p className="font-medium">{formatDate(String(label))}</p>
                                   <p className="text-green-600 font-semibold">
                                     Revenue: {formatPrice(revenue)}
                                   </p>
+                                  <p className="text-blue-600 font-semibold">
+                                    Potential: {formatPrice(potentialRevenue)}
+                                  </p>
                                   <p className="text-xs text-gray-500 mt-1">
-                                    {numberToWords(revenue)}
+                                    {numberToWords(revenue)} actual / {numberToWords(potentialRevenue)} potential
                                   </p>
                                 </div>
                               )
@@ -209,13 +223,30 @@ export function InventoryRevenueChart() {
                             return null
                           }}
                         />
+                        <Legend
+                          verticalAlign="top"
+                          height={36}
+                          iconType="line"
+                          wrapperStyle={{ fontSize: '12px' }}
+                        />
                         <Line
                           type="monotone"
                           dataKey="revenue"
+                          name="Actual Revenue"
                           stroke="#10b981"
                           strokeWidth={2}
                           dot={{ fill: "#10b981", strokeWidth: 2, r: 4 }}
                           activeDot={{ r: 6, stroke: "#10b981", strokeWidth: 2 }}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="potentialRevenue"
+                          name="Potential Revenue"
+                          stroke="#3b82f6"
+                          strokeWidth={2}
+                          strokeDasharray="5 5"
+                          dot={{ fill: "#3b82f6", strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: "#3b82f6", strokeWidth: 2 }}
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -280,7 +311,10 @@ export function InventoryRevenueChart() {
                 Total revenue: <Tooltip><TooltipTrigger asChild><span className="cursor-help">${formatLargeNumber(totalRevenue)}</span></TooltipTrigger><TooltipContent><p>{formatPrice(totalRevenue)}</p><p className="text-xs text-muted-foreground">{numberToWords(totalRevenue)}</p></TooltipContent></Tooltip>
               </span>
               <span>
-                Average daily revenue: <Tooltip><TooltipTrigger asChild><span className="cursor-help">${formatLargeNumber(averageRevenue)}</span></TooltipTrigger><TooltipContent><p>{formatPrice(averageRevenue)}</p><p className="text-xs text-muted-foreground">{numberToWords(averageRevenue)}</p></TooltipContent></Tooltip>
+                Total potential: <Tooltip><TooltipTrigger asChild><span className="cursor-help">${formatLargeNumber(totalPotentialRevenue)}</span></TooltipTrigger><TooltipContent><p>{formatPrice(totalPotentialRevenue)}</p><p className="text-xs text-muted-foreground">{numberToWords(totalPotentialRevenue)}</p></TooltipContent></Tooltip>
+              </span>
+              <span>
+                Avg daily revenue: <Tooltip><TooltipTrigger asChild><span className="cursor-help">${formatLargeNumber(averageRevenue)}</span></TooltipTrigger><TooltipContent><p>{formatPrice(averageRevenue)}</p><p className="text-xs text-muted-foreground">{numberToWords(averageRevenue)}</p></TooltipContent></Tooltip>
               </span>
             </div>
           </div>

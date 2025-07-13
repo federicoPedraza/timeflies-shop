@@ -14,7 +14,6 @@ import { useSearchParams } from "next/navigation"
 
 export default function AnalyticsPage() {
   const {
-    totalRevenue,
     maxRevenueDay,
     revenueTrend,
     profitMargin,

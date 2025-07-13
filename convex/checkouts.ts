@@ -1,5 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { createUserLog } from "./auth";
+import { api } from "./_generated/api";
 
 // Función para obtener un checkout de Tiendanube por ID
 export const getTiendanubeCheckout = query({
@@ -100,6 +102,8 @@ export const upsertTiendanubeCheckout = mutation({
       attributes: JSON.stringify(checkoutData.attributes),
       products: JSON.stringify(checkoutData.products),
       added_at: Date.now(),
+      // Set dismissed to false by default for new checkouts
+      dismissed: existingCheckout ? existingCheckout.dismissed : false,
     };
 
     if (existingCheckout) {
@@ -236,5 +240,69 @@ export const getCheckoutStats = query({
       abandonedCheckouts,
       totalAbandonedValue: Math.round(totalAbandonedValue * 100) / 100,
     };
+  },
+});
+
+// Mutation to dismiss all abandoned checkouts
+export const dismissAllAbandonedCheckouts = mutation({
+  args: { user_id: v.string() },
+  handler: async (ctx, args) => {
+    // Get all abandoned checkouts (completed_at === null, dismissed !== true)
+    const abandoned = await ctx.db
+      .query("tiendanube_checkouts")
+      .filter((q) => q.and(q.eq(q.field("completed_at"), null), q.or(q.eq(q.field("dismissed"), false), q.eq(q.field("dismissed"), undefined))))
+      .collect();
+
+    let count = 0;
+    for (const checkout of abandoned) {
+      await ctx.db.patch(checkout._id, { dismissed: true });
+      count++;
+    }
+
+    // Log the action
+    await ctx.runMutation(api.auth.createUserLog, {
+      user_id: args.user_id,
+      action: "dismiss_all_abandoned_checkouts",
+      details: JSON.stringify({ count, date: new Date().toISOString() }),
+      resource_type: "checkout",
+      resource_id: undefined,
+    });
+
+    return { success: true, count };
+  },
+});
+
+// Query to get count of not-dismissed abandoned checkouts and last dismiss log
+export const getAbandonedCheckoutsInfo = query({
+  args: {},
+  handler: async (ctx) => {
+    // Count not-dismissed abandoned checkouts
+    const checkouts = await ctx.db
+      .query("tiendanube_checkouts")
+      .filter((q) => q.and(q.eq(q.field("completed_at"), null), q.or(q.eq(q.field("dismissed"), false), q.eq(q.field("dismissed"), undefined))))
+      .collect();
+    const count = checkouts.length;
+
+    // Get the most recent dismiss log
+    const logs = await ctx.db
+      .query("user_logs")
+      .withIndex("by_timestamp", (q) => q.gte("timestamp", 0))
+      .filter((q) => q.eq(q.field("action"), "dismiss_all_abandoned_checkouts"))
+      .order("desc")
+      .take(1);
+    let lastDismiss = null;
+    if (logs.length > 0) {
+      const log = logs[0];
+      let details: any = {};
+      try {
+        details = JSON.parse(log.details);
+      } catch {}
+      lastDismiss = {
+        user_id: log.user_id,
+        date: details.date,
+        count: details.count,
+      };
+    }
+    return { count, lastDismiss };
   },
 });
