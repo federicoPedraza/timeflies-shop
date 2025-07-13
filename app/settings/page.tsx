@@ -3,6 +3,8 @@
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { EcommerceSection } from "@/components/ecommerce-section"
+import { HelpPanel } from "@/components/help-panel"
+import { useHelp } from "@/components/help-context"
 import { useQuery, useMutation } from "convex/react"
 import { api } from "../../convex/_generated/api"
 import { useAuth } from "@/components/AuthProvider"
@@ -48,6 +50,8 @@ function AbandonedCheckoutsSection() {
 }
 
 export default function SettingsPage() {
+  const { isHelpOpen, closeHelp, currentHelpSteps } = useHelp()
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -57,9 +61,18 @@ export default function SettingsPage() {
             <p className="text-muted-foreground">Manage your store configuration and preferences.</p>
           </div>
 
-          <AbandonedCheckoutsSection />
-          <EcommerceSection />
+          <div data-testid="abandoned-checkouts-section">
+            <AbandonedCheckoutsSection />
+          </div>
+          <div data-testid="ecommerce-connection-section">
+            <EcommerceSection />
+          </div>
         </div>
+        <HelpPanel
+          isOpen={isHelpOpen}
+          onClose={closeHelp}
+          steps={currentHelpSteps}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   )

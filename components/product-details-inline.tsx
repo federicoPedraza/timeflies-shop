@@ -139,7 +139,7 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
         <CardContent>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {/* Basic Information */}
-            <div className="space-y-3">
+            <div className="space-y-3" data-testid="product-details-basic">
               <h4 className="font-semibold">Basic Information</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -154,40 +154,23 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
               <div className="space-y-2 mt-3">
                 <div className="flex items-center gap-2">
                   <span className="text-muted-foreground text-sm">Product ID:</span>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Badge
-                          variant="outline"
-                          className="text-xs cursor-pointer hover:bg-gray-100 transition-colors"
-                          onClick={handleCopyProductId}
-                        >
-                          {productIdCopied ? (
-                            <>
-                              <Check className="h-3 w-3 mr-1" />
-                              Copied!
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="h-3 w-3 mr-1" />
-                              {product.providerProductId}
-                            </>
-                          )}
-                        </Badge>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-sm">
-                          {productIdCopied ? "Product ID copied to clipboard!" : "Click to copy Product ID"}
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                  <span className="font-mono text-sm bg-muted px-2 py-1 rounded">
+                    {product.providerProductId}
+                  </span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleCopyProductId}
+                    className="h-6 w-6 p-0"
+                  >
+                    {productIdCopied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  </Button>
                 </div>
               </div>
             </div>
 
             {/* Pricing */}
-            <div className="space-y-3">
+            <div className="space-y-3" data-testid="product-details-pricing">
               <h4 className="font-semibold">Pricing</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -227,37 +210,45 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
                     </TooltipProvider>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Cost:</span>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-help">
-                          {product.costPrice === 0 ? formatPrice(product.costPrice) : formatPrice(product.costPrice)}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="text-sm">
-                          {product.costPrice === 0
-                            ? "Cost to be determined by manufacturer"
-                            : numberToWords(product.costPrice)
-                          }
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Profit Margin:</span>
-                  <span className={product.price === 0 || product.costPrice === 0 ? "text-gray-500" : product.profitMargin > 50 ? "text-green-600" : "text-yellow-600"}>
-                    {product.price === 0 || product.costPrice === 0 ? "TBD" : `${product.profitMargin.toFixed(1)}%`}
-                  </span>
-                </div>
+                {product.costPrice > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Cost:</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="font-medium cursor-help">
+                            {formatPrice(product.costPrice)}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">{numberToWords(product.costPrice)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                )}
+                {product.price > 0 && product.costPrice > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Profit Margin:</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="font-medium cursor-help">
+                            {product.profitMargin.toFixed(1)}%
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">{numberToWords(product.profitMargin)} percent</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Inventory */}
-            <div className="space-y-3">
+            <div className="space-y-3" data-testid="product-details-inventory">
               <h4 className="font-semibold">Inventory</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
@@ -292,7 +283,7 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
             </div>
 
             {/* Financial Summary */}
-            <div className="space-y-3">
+            <div className="space-y-3" data-testid="product-details-financial">
               <h4 className="font-semibold">Financial Summary</h4>
               <div className="space-y-2 text-sm">
                 {(product.price > 0 && product.costPrice > 0) && (
@@ -360,7 +351,7 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
 
           {/* Description and Details */}
           <div className="space-y-4">
-            <div>
+            <div data-testid="product-details-description">
               <h4 className="font-semibold mb-2">Description</h4>
               <div
                 className="text-sm text-muted-foreground"
@@ -370,7 +361,7 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
 
             {/* SEO Information */}
             {(product.seo_title || product.seo_description) && (
-              <div>
+              <div data-testid="product-details-seo">
                 <h4 className="font-semibold mb-2">SEO Information</h4>
                 <div className="space-y-2 text-sm">
                   {product.seo_title && (
@@ -389,10 +380,8 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
               </div>
             )}
 
-
-
             {/* Product Status Details */}
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3" data-testid="product-details-status">
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Published:</span>
                 <Badge variant={product.published ? "default" : "secondary"}>
@@ -424,10 +413,12 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
       </Card>
 
       {/* Product Images */}
-      <ProductImages
-        productId={parseInt(product.providerProductId)}
-        productName={product.name}
-      />
+      <div data-testid="product-details-images">
+        <ProductImages
+          productId={parseInt(product.providerProductId)}
+          productName={product.name}
+        />
+      </div>
     </div>
   )
 })

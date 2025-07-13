@@ -11,6 +11,8 @@ import { formatPrice, numberToWords } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useEffect, useRef, useState, Suspense } from "react"
 import { useSearchParams } from "next/navigation"
+import { HelpPanel } from "@/components/help-panel"
+import { useHelp } from "@/components/help-context"
 
 interface MaxRevenueDay {
   date: string;
@@ -125,16 +127,18 @@ function AnalyticsContent({
         <h1 className="text-2xl font-bold">Analytics</h1>
       </div>
       {/* Profits Section */}
-      <div ref={profitsRef} className="space-y-4">
+      <div ref={profitsRef} className="space-y-4" data-testid="analytics-profits-section">
         <div className="flex items-center gap-2">
           <DollarSign className="h-5 w-5 text-green-600" />
           <h2 className="text-xl font-semibold">Profits & Revenue</h2>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Revenue Chart */}
-          <RevenueChart />
+          <div data-testid="analytics-revenue-chart">
+            <RevenueChart />
+          </div>
           {/* Additional Metrics Card */}
-          <Card className="h-full">
+          <Card className="h-full" data-testid="analytics-key-metrics">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5 text-blue-600" />
@@ -215,7 +219,7 @@ function AnalyticsContent({
         </div>
       </div>
       {/* Product Performance Analytics */}
-      <div ref={performanceRef} className="space-y-4">
+      <div ref={performanceRef} className="space-y-4" data-testid="analytics-performance-section">
         <div className="flex items-center gap-2">
           <BarChart3 className="h-5 w-5 text-blue-600" />
           <h2 className="text-xl font-semibold">Product Performance Analytics</h2>
@@ -223,7 +227,7 @@ function AnalyticsContent({
         <ProductPerformanceAnalytics onLoaded={() => setPerformanceLoaded(true)} />
       </div>
       {/* Stock Analytics */}
-      <div ref={inventoryRef} className="space-y-4">
+      <div ref={inventoryRef} className="space-y-4" data-testid="analytics-inventory-section">
         <div className="flex items-center gap-2">
           <Package className="h-5 w-5 text-indigo-600" />
           <h2 className="text-xl font-semibold">Stock Analytics</h2>
@@ -231,7 +235,7 @@ function AnalyticsContent({
         <StockAnalytics onLoaded={() => setInventoryLoaded(true)} />
       </div>
       {/* Future Sections Placeholder */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-testid="analytics-coming-soon">
         <h2 className="text-xl font-semibold">Coming Soon</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card className="p-6 text-center">
@@ -272,6 +276,8 @@ export default function AnalyticsPage() {
   const performanceRef = useRef<HTMLDivElement | null>(null)
   const inventoryRef = useRef<HTMLDivElement | null>(null)
 
+  const { isHelpOpen, closeHelp, currentHelpSteps } = useHelp()
+
   return (
     <ProtectedRoute>
       <TooltipProvider>
@@ -293,6 +299,11 @@ export default function AnalyticsPage() {
               totalCost={totalCost}
             />
           </Suspense>
+          <HelpPanel
+            isOpen={isHelpOpen}
+            onClose={closeHelp}
+            steps={currentHelpSteps}
+          />
         </DashboardLayout>
       </TooltipProvider>
     </ProtectedRoute>

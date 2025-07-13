@@ -7,6 +7,7 @@ export default defineSchema({
     access_token: v.string(), // Encrypted access token
     business_id: v.union(v.string(), v.null()),
     store_info: v.union(v.string(), v.null()), // JSON string of store info
+    has_seen_onboarding: v.optional(v.boolean()), // Track if user has seen onboarding
     created_at: v.number(),
     updated_at: v.number(),
   }).index("by_user_id", ["user_id"]),

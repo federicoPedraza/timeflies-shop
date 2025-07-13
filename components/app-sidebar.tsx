@@ -117,7 +117,7 @@ export function AppSidebar() {
   const hasTiendanubeError = !loading && tiendanubeStatus && !tiendanubeStatus.status
 
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" data-testid="sidebar">
       <SidebarHeader>
         <div className="flex items-center gap-2 px-2 py-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">

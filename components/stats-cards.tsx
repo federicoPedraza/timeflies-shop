@@ -272,6 +272,7 @@ export function StatsCards({
           {statsConfig.map((stat) => (
           <Card
             key={stat.title}
+            data-testid={stat.title === "Total Revenue" ? "revenue-card" : undefined}
             className={cn(
               "transition-all duration-200",
               // Existing clickable states

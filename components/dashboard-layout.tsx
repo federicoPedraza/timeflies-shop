@@ -5,7 +5,9 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { useAuth } from "./AuthProvider"
 import { AuthStatus } from "./AuthStatus"
 import { Button } from "./ui/button"
-import { LogOut } from "lucide-react"
+import { Badge } from "./ui/badge"
+import { LogOut, HelpCircle } from "lucide-react"
+import { useHelp } from "./help-context"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -13,6 +15,7 @@ interface DashboardLayoutProps {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { logout } = useAuth();
+  const { openHelp } = useHelp();
 
   return (
     <SidebarProvider>
@@ -30,6 +33,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </div>
             <div className="flex items-center gap-2">
               <AuthStatus />
+                            <Badge
+                variant="outline"
+                className="cursor-pointer hover:bg-muted transition-colors"
+                onClick={openHelp}
+                data-testid="help-button"
+              >
+                <HelpCircle className="mr-1 h-4 w-4" />
+                Help
+              </Badge>
               <Button variant="outline" size="sm" onClick={logout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout

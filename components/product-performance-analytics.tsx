@@ -100,7 +100,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
     <TooltipProvider>
       <div className="space-y-6">
         {/* Product Selection Chart */}
-        <Card className="h-full flex flex-col">
+        <Card className="h-full flex flex-col" data-testid="product-performance-selection">
           <CardHeader className="flex-shrink-0">
             <div className="flex items-center gap-2">
               <BarChart3 className="h-5 w-5 text-muted-foreground" />
@@ -111,7 +111,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
             </p>
           </CardHeader>
           <CardContent className="flex-1 flex flex-col min-h-0">
-            <div className="space-y-3 overflow-y-auto flex-1">
+            <div className="space-y-3 overflow-y-auto flex-1" data-testid="product-ranking-list">
               {salesRanking.map((product, index) => (
                 <div
                   key={product.productId}
@@ -125,6 +125,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                     "bg-white border-gray-100 hover:bg-gray-50"
                   )}
                   onClick={() => setSelectedProductId(product.productId)}
+                  data-testid={`product-rank-${index + 1}`}
                 >
                   {/* Rank */}
                   <div className={cn(
@@ -195,27 +196,27 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
             </div>
 
                          {/* Summary Stats */}
-             <div className="mt-4 pt-4 border-t border-gray-200 flex-shrink-0">
+             <div className="mt-4 pt-4 border-t border-gray-200 flex-shrink-0" data-testid="product-performance-summary">
                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
-                 <div>
+                 <div data-testid="products-sold-count">
                    <div className="text-lg font-bold text-gray-900">
                      {salesRanking.length}
                    </div>
                    <div className="text-xs text-muted-foreground">Products Sold</div>
                  </div>
-                 <div>
+                 <div data-testid="total-units-sold">
                    <div className="text-lg font-bold text-green-600">
                      {salesRanking.reduce((sum, p) => sum + p.quantitySold, 0)}
                    </div>
                    <div className="text-xs text-muted-foreground">Total Units</div>
                  </div>
-                 <div>
+                 <div data-testid="total-revenue">
                    <div className="text-lg font-bold text-blue-600">
                      {formatPrice(salesRanking.reduce((sum, p) => sum + p.revenue, 0))}
                    </div>
                    <div className="text-xs text-muted-foreground">Total Revenue</div>
                  </div>
-                 <div>
+                 <div data-testid="total-stock">
                    <div className="text-lg font-bold text-indigo-600">
                      {salesRanking.reduce((sum, p) => sum + (p.stock || 0), 0)}
                    </div>
@@ -228,7 +229,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
 
         {/* Selected Product Performance Details */}
         {selectedProductId && selectedProductData && (
-          <Card className="h-full flex flex-col">
+          <Card className="h-full flex flex-col" data-testid="product-detail-analysis">
             <CardHeader className="flex-shrink-0">
               <div className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-blue-600" />
@@ -240,7 +241,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
             </CardHeader>
             <CardContent className="flex-1 flex flex-col min-h-0 space-y-6">
               {/* Product Info */}
-              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg" data-testid="product-info-card">
                 <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                   {selectedProductData.product.images && selectedProductData.product.images.length > 0 ? (
                     <img
@@ -277,8 +278,8 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
               </div>
 
                              {/* Performance Metrics */}
-               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                 <div className="bg-blue-50 p-4 rounded-lg">
+               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="product-performance-metrics">
+                 <div className="bg-blue-50 p-4 rounded-lg" data-testid="total-units-sold-metric">
                    <div className="text-sm text-blue-600 font-medium">Total Units Sold</div>
                    <UITooltip>
                      <TooltipTrigger asChild>
@@ -291,7 +292,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                      </TooltipContent>
                    </UITooltip>
                  </div>
-                 <div className="bg-green-50 p-4 rounded-lg">
+                 <div className="bg-green-50 p-4 rounded-lg" data-testid="total-revenue-metric">
                    <div className="text-sm text-green-600 font-medium">Total Revenue</div>
                    <UITooltip>
                      <TooltipTrigger asChild>
@@ -304,7 +305,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                      </TooltipContent>
                    </UITooltip>
                  </div>
-                 <div className="bg-purple-50 p-4 rounded-lg">
+                 <div className="bg-purple-50 p-4 rounded-lg" data-testid="total-orders-metric">
                    <div className="text-sm text-purple-600 font-medium">Total Orders</div>
                    <UITooltip>
                      <TooltipTrigger asChild>
@@ -317,7 +318,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                      </TooltipContent>
                    </UITooltip>
                  </div>
-                 <div className="bg-orange-50 p-4 rounded-lg">
+                 <div className="bg-orange-50 p-4 rounded-lg" data-testid="average-price-metric">
                    <div className="text-sm text-orange-600 font-medium">Average Price</div>
                    <UITooltip>
                      <TooltipTrigger asChild>
@@ -333,7 +334,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                </div>
 
                {/* Stock Analysis & Demand Insights */}
-               <div className="space-y-4">
+               <div className="space-y-4" data-testid="stock-analysis-section">
                  <h3 className="text-lg font-semibold flex items-center gap-2">
                    <Package className="h-5 w-5 text-blue-600" />
                    Stock Analysis & Demand Insights
@@ -345,7 +346,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                    selectedProductData.stockAnalysis.stockStatus === 'low' ? "bg-red-50 border-red-400" :
                    selectedProductData.stockAnalysis.stockStatus === 'high' ? "bg-yellow-50 border-yellow-400" :
                    "bg-green-50 border-green-400"
-                 )}>
+                 )} data-testid="stock-status-alert">
                    <div className="flex items-start gap-3">
                      {selectedProductData.stockAnalysis.stockStatus === 'low' ? (
                        <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5" />
@@ -368,8 +369,8 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                  </div>
 
                  {/* Stock Metrics Grid */}
-                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                   <div className="bg-indigo-50 p-4 rounded-lg">
+                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" data-testid="stock-metrics-grid">
+                   <div className="bg-indigo-50 p-4 rounded-lg" data-testid="current-stock-metric">
                      <div className="text-sm text-indigo-600 font-medium">Current Stock</div>
                      <UITooltip>
                        <TooltipTrigger asChild>
@@ -382,7 +383,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                        </TooltipContent>
                      </UITooltip>
                    </div>
-                   <div className="bg-emerald-50 p-4 rounded-lg">
+                   <div className="bg-emerald-50 p-4 rounded-lg" data-testid="sell-rate-metric">
                      <div className="text-sm text-emerald-600 font-medium">Sell Rate (7 days)</div>
                      <UITooltip>
                        <TooltipTrigger asChild>
@@ -395,7 +396,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                        </TooltipContent>
                      </UITooltip>
                    </div>
-                   <div className="bg-amber-50 p-4 rounded-lg">
+                   <div className="bg-amber-50 p-4 rounded-lg" data-testid="days-of-stock-left-metric">
                      <div className="text-sm text-amber-600 font-medium">Days of Stock Left</div>
                      <UITooltip>
                        <TooltipTrigger asChild>
@@ -408,7 +409,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                        </TooltipContent>
                      </UITooltip>
                    </div>
-                   <div className="bg-rose-50 p-4 rounded-lg">
+                   <div className="bg-rose-50 p-4 rounded-lg" data-testid="stock-efficiency-metric">
                      <div className="text-sm text-rose-600 font-medium">Stock Efficiency</div>
                      <UITooltip>
                        <TooltipTrigger asChild>
@@ -424,8 +425,8 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                  </div>
 
                  {/* Demand Analysis */}
-                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                   <div className="bg-slate-50 p-4 rounded-lg">
+                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4" data-testid="demand-analysis">
+                   <div className="bg-slate-50 p-4 rounded-lg" data-testid="demand-score">
                      <div className="text-sm text-slate-600 font-medium">Demand Score</div>
                      <UITooltip>
                        <TooltipTrigger asChild>
@@ -441,7 +442,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                        Daily revenue potential based on current sell rate
                      </p>
                    </div>
-                   <div className="bg-slate-50 p-4 rounded-lg">
+                   <div className="bg-slate-50 p-4 rounded-lg" data-testid="stock-turnover-rate">
                      <div className="text-sm text-slate-600 font-medium">Stock Turnover Rate</div>
                      <UITooltip>
                        <TooltipTrigger asChild>
@@ -461,9 +462,9 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                </div>
 
               {/* Daily Performance Charts */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" data-testid="daily-performance-charts">
                 {/* Revenue Chart */}
-                <Card>
+                <Card data-testid="daily-revenue-chart">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <DollarSign className="h-5 w-5 text-green-600" />
@@ -536,7 +537,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                 </Card>
 
                 {/* Quantity Chart */}
-                <Card>
+                <Card data-testid="daily-quantity-chart">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Package className="h-5 w-5 text-blue-600" />
@@ -592,8 +593,8 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
               </div>
 
               {/* Additional Metrics */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4" data-testid="additional-metrics">
+                <div className="bg-gray-50 p-4 rounded-lg" data-testid="peak-daily-revenue">
                   <div className="text-sm text-gray-600 font-medium">Peak Daily Revenue</div>
                   <UITooltip>
                     <TooltipTrigger asChild>
@@ -606,7 +607,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                     </TooltipContent>
                   </UITooltip>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg" data-testid="peak-daily-units">
                   <div className="text-sm text-gray-600 font-medium">Peak Daily Units</div>
                   <UITooltip>
                     <TooltipTrigger asChild>
@@ -619,7 +620,7 @@ export function ProductPerformanceAnalytics({ onLoaded }: { onLoaded?: () => voi
                     </TooltipContent>
                   </UITooltip>
                 </div>
-                <div className="bg-gray-50 p-4 rounded-lg">
+                <div className="bg-gray-50 p-4 rounded-lg" data-testid="average-daily-revenue">
                   <div className="text-sm text-gray-600 font-medium">Average Daily Revenue</div>
                   <UITooltip>
                     <TooltipTrigger asChild>

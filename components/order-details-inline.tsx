@@ -123,7 +123,7 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
             <Badge className={statusColors[order.orderStatus]}>{capitalizeFirstLetter(order.orderStatus)}</Badge>
           </div>
           {showShareAndOpenButtons && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2" data-testid="order-actions">
               <Button
                 variant="outline"
                 size="sm"
@@ -174,7 +174,7 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
       <CardContent className="space-y-6">
         <div className="grid gap-6 md:grid-cols-2">
           {/* Customer Information */}
-          <Card>
+          <Card data-testid="order-details-customer">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <User className="h-5 w-5" />
@@ -211,7 +211,7 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
           </Card>
 
           {/* Payment Information */}
-          <Card>
+          <Card data-testid="order-details-payment">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <CreditCard className="h-5 w-5" />
@@ -246,7 +246,7 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Shipping Address */}
-          <Card>
+          <Card data-testid="order-details-shipping-address">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <MapPin className="h-5 w-5" />
@@ -259,7 +259,7 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
           </Card>
 
           {/* Shipping Information */}
-          <Card>
+          <Card data-testid="order-details-shipping-info">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <Truck className="h-5 w-5" />
@@ -295,7 +295,7 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
         </div>
 
         {/* Products - Collapsible */}
-        <Card>
+        <Card data-testid="order-details-products">
           <CardHeader>
             <Accordion type="single" collapsible>
               <AccordionItem value="products" className="border-none">
@@ -368,7 +368,7 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
         </Card>
 
         {/* Order Summary */}
-        <Card>
+        <Card data-testid="order-details-summary">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Receipt className="h-5 w-5" />
@@ -476,7 +476,7 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
 
         {/* Notes */}
         {order.notes && (
-          <Card>
+          <Card data-testid="order-details-notes">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2">
                 <FileText className="h-5 w-5" />

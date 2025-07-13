@@ -175,7 +175,7 @@ export function ProductsPageContent({ initialProductId, initialSearch, initialSt
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-0.5" data-testid="products-page-title">
         <div className="flex items-center gap-2">
           <Package className="h-6 w-6 text-gray-600" />
           <h1 className="text-2xl font-bold">Products</h1>
@@ -184,7 +184,7 @@ export function ProductsPageContent({ initialProductId, initialSearch, initialSt
       </div>
 
       {/* Filters Section */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-testid="products-filters">
         <div className="flex items-center gap-2 justify-between">
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5 text-blue-600" />
@@ -222,7 +222,7 @@ export function ProductsPageContent({ initialProductId, initialSearch, initialSt
       </div>
 
       {/* Products Table Section */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-testid="products-table">
         <ProductsDataTable
           products={filteredProducts}
           onInspectedProductChange={handleInspectedProductChange}
@@ -233,7 +233,7 @@ export function ProductsPageContent({ initialProductId, initialSearch, initialSt
 
       {/* Selected Product Details Section */}
       {productForDisplay && (
-        <div ref={productDetailsRef} className="space-y-4">
+        <div ref={productDetailsRef} className="space-y-4" data-testid="product-details">
           <div className="flex items-center gap-2">
             <Eye className="h-5 w-5 text-purple-600" />
             <h2 className="text-xl font-semibold">Product Details</h2>

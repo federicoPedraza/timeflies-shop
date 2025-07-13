@@ -2,6 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Construction, ArrowRight } from "lucide-react"
+import { useState } from "react"
 
 interface PlaceholderSectionProps {
   title: string
@@ -10,6 +11,34 @@ interface PlaceholderSectionProps {
 }
 
 export function PlaceholderSection({ title, description, icon: Icon = Construction }: PlaceholderSectionProps) {
+  const [notifyButtons, setNotifyButtons] = useState<number[]>([])
+
+  const handleNotifyClick = () => {
+    if (notifyButtons.length < 9) { // Limit to 10 total buttons (1 original + 9 new)
+      setNotifyButtons(prev => [...prev, prev.length + 1])
+    }
+  }
+
+  const getNotifyText = (buttonNumber: number) => {
+    const messages = [
+      "Notify me when the notify button works",
+      "Notify me when the notify button for the notify button works",
+      "Notify me when the notify button for the notify button for the notify button works",
+      "Notify me when the notify button for the notify button for the notify button for the notify button works",
+      "Notify me when the notify button for the notify button for the notify button for the notify button for the notify button works",
+      "Notify me when the notify button for the notify button for the notify button for the notify button for the notify button for the notify button works",
+      "Notify me when the notify button for the notify button for the notify button for the notify button for the notify button for the notify button for the notify button works",
+      "Notify me when the notify button for the notify button for the notify button for the notify button for the notify button for the notify button for the notify button for the notify button works",
+      "Notify me when the notify button for the notify button for the notify button for the notify button for the notify button for the notify button for the notify button for the notify button for the notify button works"
+    ]
+    return messages[buttonNumber - 1] || "Notify me when the notify button works"
+  }
+
+  const isButtonDisabled = (buttonNumber: number) => {
+    // Disable all buttons except the last one
+    return buttonNumber !== notifyButtons.length
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -18,7 +47,7 @@ export function PlaceholderSection({ title, description, icon: Icon = Constructi
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="col-span-full">
+        <Card className="col-span-full" data-testid="customers-under-development">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Icon className="h-5 w-5" />
@@ -37,15 +66,45 @@ export function PlaceholderSection({ title, description, icon: Icon = Constructi
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-              <div>
-                <p className="text-sm font-medium">Want to be notified?</p>
-                <p className="text-xs text-muted-foreground">We&apos;ll let you know when it&apos;s available</p>
+                        <div className="space-y-3" data-testid="notify-me-section">
+              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+                <div>
+                  <p className="text-sm font-medium">Want to be notified?</p>
+                  <p className="text-xs text-muted-foreground">We&apos;ll let you know when it&apos;s available</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleNotifyClick}
+                  disabled={notifyButtons.length > 0}
+                >
+                  Notify Me
+                  <ArrowRight className="h-3 w-3 ml-1" />
+                </Button>
               </div>
-              <Button variant="outline" size="sm">
-                Notify Me
-                <ArrowRight className="h-3 w-3 ml-1" />
-              </Button>
+
+              {notifyButtons.map((buttonNumber) => (
+                <div key={buttonNumber} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg border-l-4 border-orange-500">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Work in progress...</p>
+                    <p className="text-xs text-muted-foreground/70">
+                      {notifyButtons.length === 9 && buttonNumber === 9
+                        ? "We will never work on the Notification system"
+                        : getNotifyText(buttonNumber)
+                      }
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNotifyClick}
+                    disabled={isButtonDisabled(buttonNumber) || notifyButtons.length === 9}
+                  >
+                    Notify Me
+                    <ArrowRight className="h-3 w-3 ml-1" />
+                  </Button>
+                </div>
+              ))}
             </div>
           </CardContent>
         </Card>

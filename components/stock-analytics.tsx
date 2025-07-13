@@ -132,7 +132,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
     <TooltipProvider>
       <div className="space-y-6">
         {/* Header and Summary Stats */}
-        <Card>
+        <Card data-testid="stock-analytics-summary">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-blue-600" />
@@ -144,7 +144,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-blue-50 p-4 rounded-lg" data-testid="total-stock-metric">
                 <div className="text-sm text-blue-600 font-medium">Total Stock</div>
                 <UITooltip>
                   <TooltipTrigger asChild>
@@ -157,7 +157,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
                   </TooltipContent>
                 </UITooltip>
               </div>
-              <div className="bg-green-50 p-4 rounded-lg">
+              <div className="bg-green-50 p-4 rounded-lg" data-testid="stock-value-metric">
                 <div className="text-sm text-green-600 font-medium">Stock Value</div>
                 <UITooltip>
                   <TooltipTrigger asChild>
@@ -170,7 +170,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
                   </TooltipContent>
                 </UITooltip>
               </div>
-              <div className="bg-purple-50 p-4 rounded-lg">
+              <div className="bg-purple-50 p-4 rounded-lg" data-testid="products-with-stock-metric">
                 <div className="text-sm text-purple-600 font-medium">Products with Stock</div>
                 <UITooltip>
                   <TooltipTrigger asChild>
@@ -183,7 +183,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
                   </TooltipContent>
                 </UITooltip>
               </div>
-              <div className="bg-orange-50 p-4 rounded-lg">
+              <div className="bg-orange-50 p-4 rounded-lg" data-testid="out-of-stock-metric">
                 <div className="text-sm text-orange-600 font-medium">Out of Stock</div>
                 <UITooltip>
                   <TooltipTrigger asChild>
@@ -201,7 +201,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
         </Card>
 
         {/* Filters */}
-        <Card>
+        <Card data-testid="stock-filters">
           <CardHeader>
             <div className="flex items-center gap-2">
               <Filter className="h-5 w-5 text-gray-600" />
@@ -210,7 +210,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
+              <div data-testid="search-products-filter">
                 <label className="text-sm font-medium text-gray-700 mb-2 block">Search Products</label>
                 <Input
                   placeholder="Search by name or SKU..."
@@ -219,7 +219,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
                   className="w-full"
                 />
               </div>
-              <div>
+              <div data-testid="minimum-stock-filter">
                 <label className="text-sm font-medium text-gray-700 mb-2 block">Minimum Stock</label>
                 <Input
                   type="number"
@@ -229,7 +229,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
                   className="w-full"
                 />
               </div>
-              <div className="flex items-end">
+              <div className="flex items-end" data-testid="show-only-stock-filter">
                 <Button
                   variant={showOnlyWithStock ? "default" : "outline"}
                   onClick={() => setShowOnlyWithStock(!showOnlyWithStock)}
@@ -253,7 +253,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
         </Card>
 
         {/* Product Selection */}
-        <Card>
+        <Card data-testid="product-selection">
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -282,7 +282,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
             </p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-64 overflow-y-auto">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-64 overflow-y-auto" data-testid="product-selection-grid">
               {filteredData.map((product) => (
                 <div
                   key={product.productId}
@@ -321,7 +321,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
         </Card>
 
         {/* Pie Chart */}
-        <Card>
+        <Card data-testid="inventory-distribution-chart">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-green-600" />
@@ -393,7 +393,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
         </Card>
 
         {/* Detailed Stock List */}
-        <Card>
+        <Card data-testid="stock-value-breakdown">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-green-600" />
@@ -401,7 +401,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-96 overflow-y-auto">
+            <div className="space-y-3 max-h-96 overflow-y-auto" data-testid="stock-value-list">
               {filteredData.slice(0, 20).map((product) => (
                 <div
                   key={product.productId}

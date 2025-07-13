@@ -206,7 +206,7 @@ export function EcommerceSection() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center justify-between p-4 border rounded-lg" data-testid="tiendanube-status">
               <div className="flex items-center gap-3">
                 <div className="flex flex-col">
                   <span className="font-medium">Tiendanube</span>
@@ -218,7 +218,7 @@ export function EcommerceSection() {
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3" data-testid="sync-buttons">
                 {getStatusBadge()}
                 <Button
                   variant="outline"
@@ -266,7 +266,7 @@ export function EcommerceSection() {
 
             {/* Mostrar errores de sincronización de productos */}
             {productError && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg" data-testid="error-handling">
                 <div className="flex items-center gap-2 text-red-800">
                   <AlertCircle className="h-4 w-4" />
                   <span className="text-sm font-medium">Product Sync Error</span>
@@ -285,7 +285,7 @@ export function EcommerceSection() {
 
             {/* Mostrar errores de sincronización de órdenes */}
             {orderError && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg" data-testid="error-handling">
                 <div className="flex items-center gap-2 text-red-800">
                   <AlertCircle className="h-4 w-4" />
                   <span className="text-sm font-medium">Order Sync Error</span>
@@ -304,7 +304,7 @@ export function EcommerceSection() {
 
             {/* Mostrar errores de sincronización de checkouts */}
             {checkoutError && (
-              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg" data-testid="error-handling">
                 <div className="flex items-center gap-2 text-red-800">
                   <AlertCircle className="h-4 w-4" />
                   <span className="text-sm font-medium">Checkout Sync Error</span>
@@ -323,7 +323,7 @@ export function EcommerceSection() {
 
             {/* Mostrar resultados de sincronización de productos */}
             {showProductSyncResult && lastProductSyncResult && (
-              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg" data-testid="sync-results">
                 <div className="flex items-center gap-2 text-green-800 mb-3">
                   <CheckCircle className="h-4 w-4" />
                   <span className="text-sm font-medium">Product Sync Completed Successfully</span>
@@ -358,7 +358,7 @@ export function EcommerceSection() {
 
             {/* Mostrar resultados de sincronización de órdenes */}
             {showOrderSyncResult && lastOrderSyncResult && (
-              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg" data-testid="sync-results">
                 <div className="flex items-center gap-2 text-blue-800 mb-3">
                   <CheckCircle className="h-4 w-4" />
                   <span className="text-sm font-medium">Order Sync Completed Successfully</span>
@@ -389,7 +389,7 @@ export function EcommerceSection() {
 
             {/* Mostrar resultados de sincronización de checkouts */}
             {showCheckoutSyncResult && lastCheckoutSyncResult && (
-              <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+              <div className="mt-4 p-4 bg-purple-50 border border-purple-200 rounded-lg" data-testid="sync-results">
                 <div className="flex items-center gap-2 text-purple-800 mb-3">
                   <CheckCircle className="h-4 w-4" />
                   <span className="text-sm font-medium">Checkout Sync Completed Successfully</span>
@@ -425,7 +425,7 @@ export function EcommerceSection() {
       </Card>
 
       {/* Webhooks Section */}
-      <Card>
+      <Card data-testid="webhooks-section">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Webhook className="h-5 w-5" />
@@ -438,7 +438,7 @@ export function EcommerceSection() {
         <CardContent>
           <div className="space-y-4">
             {/* Webhook configuration form */}
-            <div className="space-y-4">
+            <div className="space-y-4" data-testid="webhook-url-configuration">
               <div className="space-y-2">
                 <Label htmlFor="webhook-url">Webhook URL</Label>
                 <div className="flex gap-2">
@@ -551,7 +551,7 @@ export function EcommerceSection() {
             )}
 
             {/* Webhook system status */}
-            <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50">
+            <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50" data-testid="webhook-status">
               <div className="flex items-center gap-3">
                 <div className="flex flex-col">
                   <span className="font-medium">Webhook System</span>
@@ -602,7 +602,7 @@ export function EcommerceSection() {
                 </p>
               </div>
 
-              <div className="p-4 border rounded-lg">
+              <div className="p-4 border rounded-lg" data-testid="webhook-security">
                 <div className="flex items-center gap-2 mb-2">
                   <Shield className="h-4 w-4 text-green-600" />
                   <span className="font-medium text-sm">Security Features</span>
@@ -618,7 +618,7 @@ export function EcommerceSection() {
 
             {/* Webhook status details */}
             {webhookStatus && webhookStatus.total_webhooks > 0 && (
-              <div className="p-4 border rounded-lg bg-green-50">
+              <div className="p-4 border rounded-lg bg-green-50" data-testid="webhook-events">
                 <h4 className="font-medium mb-3 text-green-800">Configured Webhooks</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
@@ -632,7 +632,7 @@ export function EcommerceSection() {
                   <div>
                     <span className="text-green-700 font-medium">App Events:</span>
                     <span className="ml-2 text-green-600">{webhookStatus.summary.app_events}</span>
-                  </div>
+                    </div>
                   <div>
                     <span className="text-green-700 font-medium">Other Events:</span>
                     <span className="ml-2 text-green-600">{webhookStatus.summary.other_events + webhookStatus.summary.category_events}</span>

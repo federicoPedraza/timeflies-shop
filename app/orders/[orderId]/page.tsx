@@ -11,6 +11,8 @@ import { CopyIdButton } from "@/components/copy-id-button"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Share2, ExternalLink, User } from "lucide-react"
 import { useMemo, useState, useCallback } from "react"
+import { HelpPanel } from "@/components/help-panel";
+import { useHelp } from "@/components/help-context";
 
 interface OrderPageProps {
   params: Promise<{ orderId: string }>
@@ -21,6 +23,7 @@ export default function OrderPage({ params }: OrderPageProps) {
   const orders = useQuery(api.orders.getOrdersWithProviderData);
   const [copied, setCopied] = useState(false);
   const router = useNavigationLoading();
+  const { isHelpOpen, closeHelp, currentHelpSteps } = useHelp();
 
   // Find the order by Convex _id
   const order = useMemo(() => {
@@ -64,6 +67,7 @@ export default function OrderPage({ params }: OrderPageProps) {
               <p className="text-muted-foreground">Fetching order details...</p>
             </div>
           </div>
+          <HelpPanel isOpen={isHelpOpen} onClose={closeHelp} steps={currentHelpSteps} />
         </DashboardLayout>
       </ProtectedRoute>
     );
@@ -83,6 +87,7 @@ export default function OrderPage({ params }: OrderPageProps) {
               </Button>
             </div>
           </div>
+          <HelpPanel isOpen={isHelpOpen} onClose={closeHelp} steps={currentHelpSteps} />
         </DashboardLayout>
       </ProtectedRoute>
     );
@@ -93,7 +98,7 @@ export default function OrderPage({ params }: OrderPageProps) {
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between" data-testid="order-header">
             <div className="flex items-center gap-4">
               <Button variant="outline" size="sm" onClick={handleBackToOrders}>
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -129,6 +134,7 @@ export default function OrderPage({ params }: OrderPageProps) {
           {/* Order Details */}
           <OrderDetailsInline order={order} showShareAndOpenButtons={false} />
         </div>
+        <HelpPanel isOpen={isHelpOpen} onClose={closeHelp} steps={currentHelpSteps} />
       </DashboardLayout>
     </ProtectedRoute>
   );

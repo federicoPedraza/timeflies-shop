@@ -213,7 +213,7 @@ export function OrdersPageContent({ initialOrderId, initialSearch, initialOrderS
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-0.5" data-testid="orders-page-title">
         <div className="flex items-center gap-2">
           <Package className="h-6 w-6 text-gray-600" />
           <h1 className="text-2xl font-bold">Orders</h1>
@@ -222,7 +222,7 @@ export function OrdersPageContent({ initialOrderId, initialSearch, initialOrderS
       </div>
 
       {/* Filters Section */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-testid="orders-filters">
         <div className="flex items-center gap-2 justify-between">
           <div className="flex items-center gap-2">
             <Filter className="h-5 w-5 text-blue-600" />
@@ -262,7 +262,7 @@ export function OrdersPageContent({ initialOrderId, initialSearch, initialOrderS
       </div>
 
       {/* Orders Table Section */}
-      <div className="space-y-4">
+      <div className="space-y-4" data-testid="orders-table">
         <div className="flex items-center gap-2">
           <Package className="h-5 w-5 text-green-600" />
           <h2 className="text-xl font-semibold">Orders Table</h2>

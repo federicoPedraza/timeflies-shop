@@ -31,12 +31,13 @@ export const upsertUserCredentials = mutation({
       console.log(`✅ [Auth] Updated credentials for user: ${user_id}`);
       return { success: true, action: "updated", id: existingCredentials._id };
     } else {
-      // Create new credentials
+      // Create new credentials with onboarding not seen by default
       const id = await ctx.db.insert("tiendanube_user_credentials", {
         user_id,
         access_token,
         business_id,
         store_info,
+        has_seen_onboarding: false, // Default to false for new users
         created_at: now,
         updated_at: now,
       });
@@ -64,6 +65,7 @@ export const getUserCredentials = query({
       access_token: credentials.access_token,
       business_id: credentials.business_id,
       store_info: credentials.store_info,
+      has_seen_onboarding: credentials.has_seen_onboarding || false,
       created_at: credentials.created_at,
       updated_at: credentials.updated_at,
     };
@@ -178,5 +180,56 @@ export const getRecentUserLogs = query({
       resource_type: log.resource_type,
       resource_id: log.resource_id,
     }));
+  },
+});
+
+// Check if user has seen onboarding
+export const hasUserSeenOnboarding = query({
+  args: { user_id: v.string() },
+  handler: async (ctx, args) => {
+    const credentials = await ctx.db
+      .query("tiendanube_user_credentials")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.user_id))
+      .first();
+
+    if (!credentials) {
+      return false; // New user, hasn't seen onboarding
+    }
+
+    return credentials.has_seen_onboarding || false;
+  },
+});
+
+// Mark user as having seen onboarding
+export const markOnboardingAsSeen = mutation({
+  args: { user_id: v.string() },
+  handler: async (ctx, args) => {
+    const credentials = await ctx.db
+      .query("tiendanube_user_credentials")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.user_id))
+      .first();
+
+    if (credentials) {
+      // Update existing credentials
+      await ctx.db.patch(credentials._id, {
+        has_seen_onboarding: true,
+        updated_at: Date.now(),
+      });
+      console.log(`✅ [Onboarding] Marked onboarding as seen for user: ${args.user_id}`);
+      return { success: true, action: "updated" };
+    } else {
+      // Create new credentials with onboarding seen
+      const id = await ctx.db.insert("tiendanube_user_credentials", {
+        user_id: args.user_id,
+        access_token: "", // Will be set later during auth
+        business_id: null,
+        store_info: null,
+        has_seen_onboarding: true,
+        created_at: Date.now(),
+        updated_at: Date.now(),
+      });
+      console.log(`✅ [Onboarding] Created credentials with onboarding seen for user: ${args.user_id}`);
+      return { success: true, action: "created", id };
+    }
   },
 });

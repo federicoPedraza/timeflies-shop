@@ -325,7 +325,7 @@ export function OrdersDataTable({
           <div className="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" data-testid="column-toggle">
                   <Settings2 className="h-4 w-4 mr-2" />
                   Columns
                 </Button>

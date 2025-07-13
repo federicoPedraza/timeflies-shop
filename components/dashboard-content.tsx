@@ -33,7 +33,7 @@ export function DashboardContent() {
         </div>
       </div>
 
-      <div className="flex-shrink-0">
+      <div className="flex-shrink-0" data-testid="stats-cards">
         <StatsCards
           hideFinancials={hideFinancials}
           selectedCard={selectedCard}
@@ -42,7 +42,7 @@ export function DashboardContent() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7 flex-1 min-h-0">
-        <div className="col-span-4 h-full">
+        <div className="col-span-4 h-full" data-testid="activity-chart">
           {selectedCard === "Clocks Sold" ? (
             <ClocksSoldFameChart />
           ) : selectedCard === "Total Revenue" ? (
@@ -51,7 +51,7 @@ export function DashboardContent() {
             <ActivityChart />
           )}
         </div>
-        <div className="col-span-3">
+        <div className="col-span-3" data-testid="recent-activity">
           <RecentActivity />
         </div>
       </div>

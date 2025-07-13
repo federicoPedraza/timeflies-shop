@@ -11,6 +11,8 @@ import { CopyIdButton } from "@/components/copy-id-button"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft, Share2, ExternalLink } from "lucide-react"
 import { useMemo, useState, useCallback, useEffect } from "react"
+import { HelpPanel } from "@/components/help-panel"
+import { useHelp } from "@/components/help-context"
 
 interface ProductPageProps {
   params: Promise<{ productId: string }>
@@ -21,6 +23,7 @@ export default function ProductPage({ params }: ProductPageProps) {
   const products = useQuery(api.products.getProductsWithProviderData);
   const [copied, setCopied] = useState(false);
   const router = useNavigationLoading();
+  const { isHelpOpen, closeHelp, currentHelpSteps } = useHelp()
 
   // Find the product by Convex _id
   const product = useMemo(() => {
@@ -127,6 +130,11 @@ export default function ProductPage({ params }: ProductPageProps) {
           {/* Product Details */}
           <ProductDetailsInline product={product} showShareAndOpenButtons={false} />
         </div>
+        <HelpPanel
+          isOpen={isHelpOpen}
+          onClose={closeHelp}
+          steps={currentHelpSteps}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   );
