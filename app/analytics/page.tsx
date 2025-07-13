@@ -2,10 +2,14 @@
 
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { RevenueChart, useRevenueMetrics } from "@/components/revenue-chart"
+import { ProductPerformanceAnalytics } from "@/components/product-performance-analytics"
+import { StockAnalytics } from "@/components/stock-analytics"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { DollarSign, TrendingUp, BarChart3, TrendingDown, Minus } from "lucide-react"
+import { DollarSign, TrendingUp, BarChart3, TrendingDown, Minus, Package } from "lucide-react"
 import { formatPrice, numberToWords } from "@/lib/utils"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useEffect, useRef, useState } from "react"
+import { useSearchParams } from "next/navigation"
 
 export default function AnalyticsPage() {
   const {
@@ -15,8 +19,50 @@ export default function AnalyticsPage() {
     profitMargin,
     totalProfit,
     totalCost,
-    isLoading
+    isLoading: profitsLoading
   } = useRevenueMetrics()
+
+  const [performanceLoaded, setPerformanceLoaded] = useState(false)
+  const [inventoryLoaded, setInventoryLoaded] = useState(false)
+
+  const searchParams = useSearchParams()
+  const profitsRef = useRef<HTMLDivElement>(null)
+  const performanceRef = useRef<HTMLDivElement>(null)
+  const inventoryRef = useRef<HTMLDivElement>(null)
+
+  // Handle scrolling to sections based on URL hash, only after all sections are loaded
+  useEffect(() => {
+    if (profitsLoading || !performanceLoaded || !inventoryLoaded) return
+    const hash = window.location.hash
+    if (!hash) return
+
+    const scrollToSection = () => {
+      let targetRef: React.RefObject<HTMLDivElement | null> | null = null
+
+      switch (hash) {
+        case '#profits':
+          targetRef = profitsRef
+          break
+        case '#performance':
+          targetRef = performanceRef
+          break
+        case '#inventory':
+          targetRef = inventoryRef
+          break
+      }
+
+      if (targetRef?.current) {
+        setTimeout(() => {
+          targetRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          })
+        }, 100) // Small delay to ensure content is rendered
+      }
+    }
+
+    scrollToSection()
+  }, [profitsLoading, performanceLoaded, inventoryLoaded, searchParams])
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
@@ -62,7 +108,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Profits Section */}
-          <div className="space-y-4">
+          <div ref={profitsRef} className="space-y-4">
             <div className="flex items-center gap-2">
               <DollarSign className="h-5 w-5 text-green-600" />
               <h2 className="text-xl font-semibold">Profits & Revenue</h2>
@@ -87,11 +133,11 @@ export default function AnalyticsPage() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="text-2xl font-bold text-blue-700 cursor-help">
-                            {isLoading ? '--' : `${profitMargin.toFixed(1)}%`}
+                            {profitsLoading ? '--' : `${profitMargin.toFixed(1)}%`}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{isLoading ? '--' : `${numberToWords(profitMargin)} percent`}</p>
+                          <p>{profitsLoading ? '--' : `${numberToWords(profitMargin)} percent`}</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -100,11 +146,11 @@ export default function AnalyticsPage() {
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <div className="text-2xl font-bold text-green-700 cursor-help">
-                            {isLoading ? '--' : formatPrice(totalProfit)}
+                            {profitsLoading ? '--' : formatPrice(totalProfit)}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{isLoading ? '--' : numberToWords(totalProfit)}</p>
+                          <p>{profitsLoading ? '--' : numberToWords(totalProfit)}</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
@@ -113,7 +159,7 @@ export default function AnalyticsPage() {
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="text-sm text-gray-600 font-medium">Top Performing Day</div>
                     <div className="text-lg font-semibold">
-                      {isLoading || !maxRevenueDay ? '--' : (
+                      {profitsLoading || !maxRevenueDay ? '--' : (
                         <div>
                           <div>{maxRevenueDay.date}</div>
                           <Tooltip>
@@ -144,11 +190,11 @@ export default function AnalyticsPage() {
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <div className="text-lg font-semibold text-orange-700 cursor-help">
-                          {isLoading ? '--' : formatPrice(totalCost)}
+                          {profitsLoading ? '--' : formatPrice(totalCost)}
                         </div>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>{isLoading ? '--' : numberToWords(totalCost)}</p>
+                        <p>{profitsLoading ? '--' : numberToWords(totalCost)}</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -157,15 +203,28 @@ export default function AnalyticsPage() {
             </div>
           </div>
 
+          {/* Product Performance Analytics */}
+          <div ref={performanceRef} className="space-y-4">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5 text-blue-600" />
+              <h2 className="text-xl font-semibold">Product Performance Analytics</h2>
+            </div>
+            <ProductPerformanceAnalytics onLoaded={() => setPerformanceLoaded(true)} />
+          </div>
+
+          {/* Stock Analytics */}
+          <div ref={inventoryRef} className="space-y-4">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5 text-indigo-600" />
+              <h2 className="text-xl font-semibold">Stock Analytics</h2>
+            </div>
+            <StockAnalytics onLoaded={() => setInventoryLoaded(true)} />
+          </div>
+
           {/* Future Sections Placeholder */}
           <div className="space-y-4">
             <h2 className="text-xl font-semibold">Coming Soon</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card className="p-6 text-center">
-                <div className="text-muted-foreground mb-2">📊</div>
-                <h3 className="font-medium">Product Performance</h3>
-                <p className="text-sm text-muted-foreground mt-1">Best selling products analysis</p>
-              </Card>
               <Card className="p-6 text-center">
                 <div className="text-muted-foreground mb-2">👥</div>
                 <h3 className="font-medium">Customer Insights</h3>
@@ -175,6 +234,11 @@ export default function AnalyticsPage() {
                 <div className="text-muted-foreground mb-2">🚚</div>
                 <h3 className="font-medium">Shipping Analytics</h3>
                 <p className="text-sm text-muted-foreground mt-1">Delivery performance and costs</p>
+              </Card>
+              <Card className="p-6 text-center">
+                <div className="text-muted-foreground mb-2">📈</div>
+                <h3 className="font-medium">Advanced Analytics</h3>
+                <p className="text-sm text-muted-foreground mt-1">Predictive analytics and trends</p>
               </Card>
             </div>
           </div>

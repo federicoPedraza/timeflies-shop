@@ -197,7 +197,7 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="font-medium cursor-help">
-                          {product.price === 0 ? formatPrice(product.price) : `$${formatPrice(product.price)}`}
+                          {product.price === 0 ? formatPrice(product.price) : formatPrice(product.price)}
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -218,7 +218,7 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span className="line-through text-muted-foreground cursor-help">
-                            ${formatPrice(product.compareAtPrice)}
+                            {formatPrice(product.compareAtPrice)}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -234,7 +234,7 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
                     <Tooltip>
                       <TooltipTrigger asChild>
                         <span className="cursor-help">
-                          {product.costPrice === 0 ? formatPrice(product.costPrice) : `$${formatPrice(product.costPrice)}`}
+                          {product.costPrice === 0 ? formatPrice(product.costPrice) : formatPrice(product.costPrice)}
                         </span>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -303,7 +303,7 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span className="font-medium cursor-help">
-                            ${formatPrice(product.price - product.costPrice)}
+                            {formatPrice(product.price - product.costPrice)}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -322,7 +322,7 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span className="font-medium cursor-help">
-                            ${formatPrice(product.price * product.stockQuantity)}
+                            {formatPrice(product.price * product.stockQuantity)}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -341,7 +341,7 @@ export const ProductDetailsInline = memo(function ProductDetailsInline({ product
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <span className="font-medium cursor-help">
-                            ${formatPrice(product.costPrice * product.stockQuantity)}
+                            {formatPrice(product.costPrice * product.stockQuantity)}
                           </span>
                         </TooltipTrigger>
                         <TooltipContent>

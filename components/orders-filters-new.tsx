@@ -29,9 +29,13 @@ interface OrdersFiltersProps {
   initialOrderStatus?: string | null
   initialDateFrom?: Date
   initialDateTo?: Date
+  isOptionsCollapsed: boolean
+  setIsOptionsCollapsed: (collapsed: boolean) => void
+  activeFiltersCount: number
+  clearFilters: () => void
 }
 
-export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch, initialOrderStatus, initialDateFrom, initialDateTo }: OrdersFiltersProps) {
+export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch, initialOrderStatus, initialDateFrom, initialDateTo, isOptionsCollapsed, setIsOptionsCollapsed, activeFiltersCount, clearFilters }: OrdersFiltersProps) {
   const [searchTerm, setSearchTerm] = useState(initialSearch || "")
   const [orderStatus, setOrderStatus] = useState<string>(initialOrderStatus || "all")
   const [paymentStatus, setPaymentStatus] = useState<string>("all")
@@ -40,7 +44,6 @@ export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch, i
   const [dateTo, setDateTo] = useState<Date | undefined>(initialDateTo)
   const [minAmount, setMinAmount] = useState("")
   const [maxAmount, setMaxAmount] = useState("")
-  const [isOptionsCollapsed, setIsOptionsCollapsed] = useState(true)
 
   // Update search term when initialSearch prop changes
   useEffect(() => {
@@ -125,54 +128,9 @@ export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch, i
     onFilteredOrdersChange,
   ])
 
-  const clearFilters = () => {
-    setSearchTerm("")
-    setOrderStatus("all")
-    setPaymentStatus("all")
-    setPaymentMethod("all")
-    setDateFrom(undefined)
-    setDateTo(undefined)
-    setMinAmount("")
-    setMaxAmount("")
-  }
-
-  const activeFiltersCount = [
-    searchTerm,
-    orderStatus !== "all" ? orderStatus : null,
-    paymentStatus !== "all" ? paymentStatus : null,
-    paymentMethod !== "all" ? paymentMethod : null,
-    dateFrom,
-    dateTo,
-    minAmount,
-    maxAmount,
-  ].filter(Boolean).length
-
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          <span className="font-medium">Filters</span>
-          {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
-        </div>
-        <div className="flex items-center gap-2">
-          {activeFiltersCount > 0 && (
-            <Button variant="outline" size="sm" onClick={clearFilters}>
-              <X className="h-3 w-3 mr-1" />
-              Clear All
-            </Button>
-          )}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setIsOptionsCollapsed(!isOptionsCollapsed)}
-            className="p-2"
-            aria-label={isOptionsCollapsed ? "Expand filter options" : "Collapse filter options"}
-          >
-            {isOptionsCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-          </Button>
-        </div>
-      </div>
+      {/* Only filter controls, no header */}
       {!isOptionsCollapsed && (
         <div>
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">

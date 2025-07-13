@@ -272,7 +272,7 @@ export function ProductsDataTable({
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <span className="text-2xl font-bold text-primary cursor-help">
-                              {product.price === 0 ? formatPrice(product.price) : `$${formatPrice(product.price)}`}
+                              {formatPrice(product.price)}
                             </span>
                           </TooltipTrigger>
                           <TooltipContent>
@@ -290,7 +290,7 @@ export function ProductsDataTable({
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <span className="text-sm text-muted-foreground line-through cursor-help">
-                                ${formatPrice(product.compareAtPrice)}
+                                {formatPrice(product.compareAtPrice)}
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -302,7 +302,7 @@ export function ProductsDataTable({
                     </div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>Profit: {product.price === 0 || product.costPrice === 0 ? "TBD" : `${profitMargin.toFixed(1)}%`}</span>
-                      <span>Cost: {product.costPrice === 0 ? formatPrice(product.costPrice) : `$${formatPrice(product.costPrice)}`}</span>
+                      <span>Cost: {formatPrice(product.costPrice)}</span>
                     </div>
                   </div>
 
@@ -405,7 +405,7 @@ export function ProductsDataTable({
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <span className="text-2xl font-bold text-primary cursor-help">
-                                      {product.price === 0 ? formatPrice(product.price) : `$${formatPrice(product.price)}`}
+                                      {formatPrice(product.price)}
                                     </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
@@ -423,7 +423,7 @@ export function ProductsDataTable({
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <span className="text-sm text-muted-foreground line-through cursor-help">
-                                        ${formatPrice(product.compareAtPrice)}
+                                        {formatPrice(product.compareAtPrice)}
                                       </span>
                                     </TooltipTrigger>
                                     <TooltipContent>
@@ -434,7 +434,7 @@ export function ProductsDataTable({
                               )}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              Profit: {product.price === 0 || product.costPrice === 0 ? "TBD" : `${profitMargin.toFixed(1)}%`} • Cost: {product.costPrice === 0 ? formatPrice(product.costPrice) : `$${formatPrice(product.costPrice)}`}
+                              Profit: {product.price === 0 || product.costPrice === 0 ? "TBD" : `${profitMargin.toFixed(1)}%`} • Cost: {formatPrice(product.costPrice)}
                             </div>
                           </div>
 

@@ -26,9 +26,10 @@ import {
 } from "lucide-react"
 import { format } from "date-fns"
 import type { Order } from "@/components/orders-page-content"
-import { capitalizeFirstLetter } from "@/lib/utils"
+import { capitalizeFirstLetter, formatPrice, numberToWords } from "@/lib/utils"
 import { useCallback } from "react"
 import { ShippingAddressMap } from "@/components/shipping-address-map"
+import { TooltipProvider, Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 
 interface OrderDetailsDialogProps {
   order: Order | null
@@ -155,7 +156,17 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
               </div>
               <div className="flex items-center gap-2">
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
-                <span className="font-medium">Total Amount:</span> ${order.totalAmount.toFixed(2)}
+                <span className="font-medium">Total Amount:</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>{formatPrice(order.totalAmount)}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{numberToWords(order.totalAmount)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </CardContent>
           </Card>
@@ -193,12 +204,30 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
                   <div className="flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">Customer Cost:</span>
-                    <span>${order.shippingInfo.consumer_cost.toFixed(2)}</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>{formatPrice(order.shippingInfo.consumer_cost)}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{numberToWords(order.shippingInfo.consumer_cost)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   <div className="flex items-center gap-2">
                     <Building className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">Merchant Cost:</span>
-                    <span>${order.shippingInfo.merchant_cost.toFixed(2)}</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span>{formatPrice(order.shippingInfo.merchant_cost)}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{numberToWords(order.shippingInfo.merchant_cost)}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </>
               )}
@@ -239,6 +268,14 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
                           <h4 className="font-medium flex items-center gap-2">
                             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                             {product.name}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="ml-1"
+                              onClick={() => window.open(`/products/${product.id}`, '_blank')}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
                           </h4>
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <Tag className="h-3 w-3" />
@@ -250,8 +287,30 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
                           </p>
                         </div>
                         <div className="text-right">
-                          <div className="font-medium">${(product.price * product.quantity).toFixed(2)}</div>
-                          <div className="text-sm text-muted-foreground">${product.price} each</div>
+                          <div className="font-medium">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span>{formatPrice(product.price * product.quantity)}</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{numberToWords(product.price * product.quantity)}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span>{formatPrice(product.price)} each</span>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{numberToWords(product.price)} each</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -277,21 +336,48 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
                   <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                   Subtotal ({totalItems} items):
                 </span>
-                <span>${subtotal.toFixed(2)}</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>{formatPrice(subtotal)}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{numberToWords(subtotal)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <div className="flex justify-between items-center">
                 <span className="flex items-center gap-2">
                   <Truck className="h-4 w-4 text-muted-foreground" />
                   Shipping:
                 </span>
-                <span>${order.shippingCost.toFixed(2)}</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>{formatPrice(order.shippingCost)}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{numberToWords(order.shippingCost)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               <div className="flex justify-between items-center">
                 <span className="flex items-center gap-2">
                   <Building className="h-4 w-4 text-muted-foreground" />
                   Tax:
                 </span>
-                <span>${order.taxAmount.toFixed(2)}</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>{formatPrice(order.taxAmount)}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{numberToWords(order.taxAmount)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
               {order.discountAmount > 0 && (
                 <div className="flex justify-between items-center text-green-600">
@@ -299,7 +385,16 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
                     <Tag className="h-4 w-4" />
                     Discount:
                   </span>
-                  <span>-${order.discountAmount.toFixed(2)}</span>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span>-{formatPrice(order.discountAmount)}</span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>-{numberToWords(order.discountAmount)}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               )}
               <Separator />
@@ -308,7 +403,16 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
                   <DollarSign className="h-5 w-5" />
                   Total:
                 </span>
-                <span>${order.totalAmount.toFixed(2)}</span>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span>{formatPrice(order.totalAmount)}</span>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{numberToWords(order.totalAmount)}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
           </CardContent>

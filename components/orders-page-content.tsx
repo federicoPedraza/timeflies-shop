@@ -8,6 +8,9 @@ import { OrdersFilters } from "@/components/orders-filters-new"
 import { OrdersDataTable } from "@/components/orders-data-table"
 import { OrderDetailsDialog } from "@/components/order-details-dialog"
 import { OrderDetailsInline } from "@/components/order-details-inline"
+import { Package, Filter, Eye, ChevronDown, ChevronUp, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 export type Order = {
   id: string
@@ -70,6 +73,7 @@ export function OrdersPageContent({ initialOrderId, initialSearch, initialOrderS
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [inspectedOrder, setInspectedOrder] = useState<Order | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [isOptionsCollapsed, setIsOptionsCollapsed] = useState(true)
 
   // Helper to parse YYYY-MM-DD as local date
   function parseLocalDate(str?: string | null): Date | undefined {
@@ -94,7 +98,39 @@ export function OrdersPageContent({ initialOrderId, initialSearch, initialOrderS
     if (urlDateTo) initialDateTo = parseLocalDate(urlDateTo)
   }
 
-    // Update URL when inspected order changes
+  // Filter state for badge and clear
+  const [searchTerm, setSearchTerm] = useState(initialSearch || "")
+  const [orderStatus, setOrderStatus] = useState<string>(initialOrderStatus || "all")
+  const [paymentStatus, setPaymentStatus] = useState<string>("all")
+  const [paymentMethod, setPaymentMethod] = useState<string>("all")
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(initialDateFrom)
+  const [dateTo, setDateTo] = useState<Date | undefined>(initialDateTo)
+  const [minAmount, setMinAmount] = useState("")
+  const [maxAmount, setMaxAmount] = useState("")
+
+  const activeFiltersCount = [
+    searchTerm,
+    orderStatus !== "all" ? orderStatus : null,
+    paymentStatus !== "all" ? paymentStatus : null,
+    paymentMethod !== "all" ? paymentMethod : null,
+    dateFrom,
+    dateTo,
+    minAmount,
+    maxAmount,
+  ].filter(Boolean).length
+
+  const clearFilters = () => {
+    setSearchTerm("")
+    setOrderStatus("all")
+    setPaymentStatus("all")
+    setPaymentMethod("all")
+    setDateFrom(undefined)
+    setDateTo(undefined)
+    setMinAmount("")
+    setMaxAmount("")
+  }
+
+  // Update URL when inspected order changes
   const updateURL = useCallback((orderId: string | null) => {
     const params = new URLSearchParams(searchParams.toString())
 
@@ -156,46 +192,89 @@ export function OrdersPageContent({ initialOrderId, initialSearch, initialOrderS
   if (ordersFromDB === undefined) {
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Order Management</h2>
-          <p className="text-muted-foreground">
-            Loading orders...
-          </p>
+        {/* Header */}
+        <div className="flex items-center gap-2">
+          <Package className="h-6 w-6 text-gray-600" />
+          <h1 className="text-2xl font-bold">Orders</h1>
+        </div>
+        <div className="text-muted-foreground">
+          Loading orders...
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6 w-full">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Order Management</h2>
-        <p className="text-muted-foreground">
-          Manage and track all your clock orders with advanced filters and detailed views.
-        </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <Package className="h-6 w-6 text-gray-600" />
+        <h1 className="text-2xl font-bold">Orders</h1>
       </div>
 
-                  {/* Orders Section with Filters and Table */}
-      <OrdersDataTable
-        orders={filteredOrders}
-        onViewOrder={handleViewOrder}
-        onInspectedOrderChange={handleInspectedOrderChange}
-        filtersComponent={
-          <OrdersFilters
-            orders={orders}
-            onFilteredOrdersChange={setFilteredOrders}
-            initialSearch={initialSearch}
-            initialOrderStatus={initialOrderStatus}
-            initialDateFrom={initialDateFrom}
-            initialDateTo={initialDateTo}
-          />
-        }
-        collapseOnOrderInspect={!!initialOrderId}
-      />
+      {/* Filters Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-blue-600" />
+            <h2 className="text-xl font-semibold">Filters & Search</h2>
+            {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
+          </div>
+          <div className="flex items-center gap-2">
+            {activeFiltersCount > 0 && (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <X className="h-3 w-3 mr-1" />
+                Clear All
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOptionsCollapsed(!isOptionsCollapsed)}
+              className="p-2"
+              aria-label={isOptionsCollapsed ? "Expand filter options" : "Collapse filter options"}
+            >
+              {isOptionsCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+        <OrdersFilters
+          orders={orders}
+          onFilteredOrdersChange={setFilteredOrders}
+          initialSearch={initialSearch}
+          initialOrderStatus={initialOrderStatus}
+          initialDateFrom={initialDateFrom}
+          initialDateTo={initialDateTo}
+          isOptionsCollapsed={isOptionsCollapsed}
+          setIsOptionsCollapsed={setIsOptionsCollapsed}
+          activeFiltersCount={activeFiltersCount}
+          clearFilters={clearFilters}
+        />
+      </div>
 
-      {/* Inline Order Details */}
+      {/* Orders Table Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <Package className="h-5 w-5 text-green-600" />
+          <h2 className="text-xl font-semibold">Orders Table</h2>
+        </div>
+        <OrdersDataTable
+          orders={filteredOrders}
+          onViewOrder={handleViewOrder}
+          onInspectedOrderChange={handleInspectedOrderChange}
+          collapseOnOrderInspect={!!initialOrderId}
+        />
+      </div>
+
+      {/* Selected Order Details Section */}
       {orderForDisplay && (
-        <OrderDetailsInline order={orderForDisplay} showShareAndOpenButtons={!!orderForDisplay} />
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Eye className="h-5 w-5 text-purple-600" />
+            <h2 className="text-xl font-semibold">Order Details</h2>
+          </div>
+          <OrderDetailsInline order={orderForDisplay} showShareAndOpenButtons={!!orderForDisplay} />
+        </div>
       )}
 
       {/* Details Dialog (kept for backward compatibility with action button) */}

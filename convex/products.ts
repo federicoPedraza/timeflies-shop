@@ -1005,6 +1005,7 @@ export const getProductSalesRanking = query({
       quantitySold: number;
       revenue: number;
       price: number;
+      stock: number;
     }> = {};
 
         // Process each order
@@ -1079,6 +1080,7 @@ export const getProductSalesRanking = query({
                       quantitySold: 0,
                       revenue: 0,
                       price: (dbProduct.price || 0), // NO convertir de centavos
+                      stock: dbProduct.stock || 0,
                     };
                   }
                 }
@@ -1093,6 +1095,7 @@ export const getProductSalesRanking = query({
                   quantitySold: 0,
                   revenue: 0,
                   price: (dbProduct.price || 0), // NO convertir de centavos
+                  stock: dbProduct.stock || 0,
                 };
               }
 
@@ -1131,6 +1134,7 @@ export const getProductSalesRanking = query({
                       quantitySold: 0,
                       revenue: 0,
                       price: price,
+                      stock: 0, // No stock info for order-only products
                     };
                   }
                 }
@@ -1144,6 +1148,7 @@ export const getProductSalesRanking = query({
                   quantitySold: 0,
                   revenue: 0,
                   price: price,
+                  stock: 0, // No stock info for order-only products
                 };
               }
 
@@ -1201,6 +1206,252 @@ export const getProductsCostData = query({
       sampleProductsWithCost,
       sampleProductsWithoutCost,
       costPercentage: products.length > 0 ? (productsWithCost.length / products.length) * 100 : 0
+    };
+  },
+});
+
+// Query to get detailed performance data for a specific product
+export const getProductPerformanceData = query({
+  args: {
+    productId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const sixMonthsAgo = Date.now() - (180 * 24 * 60 * 60 * 1000); // 6 months ago
+    const thirtyDaysAgo = Date.now() - (30 * 24 * 60 * 60 * 1000); // 30 days ago
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000); // 7 days ago
+
+    // Get all orders and products
+    const orders = await ctx.db.query("tiendanube_orders").collect();
+    const products = await ctx.db.query("tiendanube_products").collect();
+    const productImages = await ctx.db.query("tiendanube_product_images").collect();
+
+    // Filter recent orders (last 6 months, non-cancelled)
+    const recentOrders = orders.filter(order => {
+      let orderDate: number;
+      try {
+        orderDate = new Date(order.created_at).getTime();
+      } catch {
+        orderDate = order.added_at;
+      }
+      return orderDate >= sixMonthsAgo && order.status !== "cancelled";
+    });
+
+    // Track daily sales for the last 30 days
+    const dailySales: Record<string, {
+      date: string;
+      quantity: number;
+      revenue: number;
+      orders: number;
+    }> = {};
+
+    // Initialize daily sales for the last 30 days
+    for (let i = 29; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      dailySales[dateStr] = {
+        date: dateStr,
+        quantity: 0,
+        revenue: 0,
+        orders: 0
+      };
+    }
+
+    let totalQuantity = 0;
+    let totalRevenue = 0;
+    let totalOrders = 0;
+    let averagePrice = 0;
+    let maxDailyQuantity = 0;
+    let maxDailyRevenue = 0;
+    let last7DaysQuantity = 0;
+    let last7DaysRevenue = 0;
+
+    // Process each order
+    for (const order of recentOrders) {
+      try {
+        const productsData = JSON.parse(order.products);
+        let orderDate: number;
+        try {
+          orderDate = new Date(order.created_at).getTime();
+        } catch {
+          orderDate = order.added_at;
+        }
+
+        for (const product of productsData) {
+          const productId = product.id || product.product_id;
+          if (!productId) continue;
+
+          // The productId from orders is often a variant ID, not the main product ID
+          let actualProductId = parseInt(productId);
+
+          // If the product has image data in the order, use that product_id
+          if (product.image && product.image.product_id) {
+            actualProductId = product.image.product_id;
+          }
+
+          // Check if this is the product we're looking for
+          if (actualProductId.toString() === args.productId) {
+            const quantity = Number(product.quantity || 1);
+            const price = parseFloat(product.price || "0");
+            const revenue = price * quantity;
+
+            totalQuantity += quantity;
+            totalRevenue += revenue;
+            totalOrders++;
+
+            // Track last 7 days for sell rate calculation
+            if (orderDate >= sevenDaysAgo) {
+              last7DaysQuantity += quantity;
+              last7DaysRevenue += revenue;
+            }
+
+            // Add to daily sales if within last 30 days
+            if (orderDate >= thirtyDaysAgo) {
+              const orderDateStr = new Date(orderDate).toISOString().split('T')[0];
+              if (dailySales[orderDateStr]) {
+                dailySales[orderDateStr].quantity += quantity;
+                dailySales[orderDateStr].revenue += revenue;
+                dailySales[orderDateStr].orders++;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing order ${order.tiendanube_id}:`, error);
+      }
+    }
+
+    // Calculate averages and find max values
+    averagePrice = totalQuantity > 0 ? totalRevenue / totalQuantity : 0;
+
+    // Find max daily values
+    Object.values(dailySales).forEach(day => {
+      if (day.quantity > maxDailyQuantity) maxDailyQuantity = day.quantity;
+      if (day.revenue > maxDailyRevenue) maxDailyRevenue = day.revenue;
+    });
+
+    // Get product details
+    const product = products.find(p => p.tiendanube_id.toString() === args.productId);
+    const productImagesForProduct = productImages.filter(img => img.product_id === parseInt(args.productId));
+    const firstImage = productImagesForProduct.sort((a, b) => a.position - b.position)[0];
+
+    // Calculate stock and sell rate metrics
+    const currentStock = product?.stock || 0;
+    const sellRatePerDay = last7DaysQuantity / 7; // Average daily sales in last 7 days
+    const daysOfStockRemaining = sellRatePerDay > 0 ? currentStock / sellRatePerDay : currentStock > 0 ? 999 : 0;
+    const stockTurnoverRate = totalQuantity > 0 ? (totalQuantity / 180) / (currentStock || 1) : 0; // 6 months = 180 days
+    const demandScore = sellRatePerDay * (product?.price || 0); // Daily revenue potential
+    const stockEfficiency = currentStock > 0 ? (sellRatePerDay / currentStock) * 100 : 0;
+
+    // Determine stock status and recommendations
+    let stockStatus = 'optimal';
+    let stockRecommendation = 'Maintain current stock levels';
+
+    if (daysOfStockRemaining < 7) {
+      stockStatus = 'low';
+      stockRecommendation = 'Consider increasing stock - high demand detected';
+    } else if (daysOfStockRemaining > 60) {
+      stockStatus = 'high';
+      stockRecommendation = 'Consider reducing stock - low turnover rate';
+    } else if (daysOfStockRemaining > 30) {
+      stockStatus = 'moderate';
+      stockRecommendation = 'Monitor stock levels - moderate demand';
+    }
+
+    // Convert daily sales to array and sort by date
+    const dailySalesArray = Object.values(dailySales).sort((a, b) => a.date.localeCompare(b.date));
+
+    return {
+      product: {
+        id: args.productId,
+        name: product?.name || `Product ${args.productId}`,
+        sku: product?.tiendanube_sku || `TF-${args.productId}`,
+        price: product?.price || 0,
+        cost: product?.cost || 0,
+        stock: currentStock,
+        images: firstImage ? [firstImage.src] : [],
+      },
+      summary: {
+        totalQuantity,
+        totalRevenue,
+        totalOrders,
+        averagePrice,
+        maxDailyQuantity,
+        maxDailyRevenue,
+        averageDailyQuantity: totalQuantity / 30,
+        averageDailyRevenue: totalRevenue / 30,
+        last7DaysQuantity,
+        last7DaysRevenue,
+      },
+      stockAnalysis: {
+        currentStock,
+        sellRatePerDay,
+        daysOfStockRemaining,
+        stockTurnoverRate,
+        demandScore,
+        stockEfficiency,
+        stockStatus,
+        stockRecommendation,
+      },
+      dailySales: dailySalesArray,
+    };
+  },
+});
+
+// Query to get stock analytics data for all products
+export const getStockAnalytics = query({
+  args: {},
+  handler: async (ctx) => {
+    // Get all products
+    const products = await ctx.db.query("tiendanube_products").collect();
+    const productImages = await ctx.db.query("tiendanube_product_images").collect();
+
+    // Calculate total stock across all products
+    const totalStock = products.reduce((sum, product) => sum + (product.stock || 0), 0);
+
+    // Create stock analytics data with images
+    const stockData = products.map(product => {
+      // Find the first image for this product
+      const productImagesForProduct = productImages.filter(img => img.product_id === product.tiendanube_id);
+      const firstImage = productImagesForProduct.sort((a, b) => a.position - b.position)[0];
+
+      const stock = product.stock || 0;
+      const percentage = totalStock > 0 ? (stock / totalStock) * 100 : 0;
+
+      return {
+        id: product._id,
+        productId: product.tiendanube_id.toString(),
+        name: product.name || `Product ${product.tiendanube_id}`,
+        sku: product.tiendanube_sku || `TF-${product.tiendanube_id}`,
+        stock,
+        percentage,
+        price: product.price || 0,
+        cost: product.cost || 0,
+        images: firstImage ? [firstImage.src] : [],
+        stockValue: stock * (product.price || 0), // Total value of stock
+        costValue: stock * (product.cost || 0), // Total cost of stock
+      };
+    });
+
+    // Sort by stock quantity (descending)
+    const sortedStockData = stockData
+      .filter(product => product.stock > 0) // Only show products with stock
+      .sort((a, b) => b.stock - a.stock);
+
+    // Calculate summary statistics
+    const totalStockValue = stockData.reduce((sum, product) => sum + product.stockValue, 0);
+    const totalCostValue = stockData.reduce((sum, product) => sum + product.costValue, 0);
+    const productsWithStock = stockData.filter(product => product.stock > 0).length;
+    const productsWithoutStock = stockData.filter(product => product.stock === 0).length;
+
+    return {
+      totalStock,
+      totalStockValue,
+      totalCostValue,
+      productsWithStock,
+      productsWithoutStock,
+      totalProducts: products.length,
+      stockData: sortedStockData,
     };
   },
 });

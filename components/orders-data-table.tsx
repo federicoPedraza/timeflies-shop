@@ -18,7 +18,7 @@ import {
 import { Eye, MoreHorizontal, Settings2, ArrowUpDown, ChevronDown, ChevronUp, ChevronRight, Copy, Check } from "lucide-react"
 import { format } from "date-fns"
 import type { Order } from "@/components/orders-page-content"
-import { capitalizeFirstLetter } from "@/lib/utils"
+import { capitalizeFirstLetter, formatPrice } from "@/lib/utils"
 
 
 interface OrdersDataTableProps {
@@ -255,7 +255,7 @@ export function OrdersDataTable({
           <div className="text-sm min-w-0 flex-1">
             <div className="font-medium truncate" title={order.products[0].name}>{order.products[0].name}</div>
             <div className="text-muted-foreground">
-              ${order.products[0].price} × {order.products[0].quantity}
+              {formatPrice(order.products[0].price)} × {order.products[0].quantity}
             </div>
           </div>
         </div>
@@ -270,9 +270,9 @@ export function OrdersDataTable({
             />
             <div className="text-sm min-w-0 flex-1">
               <div className="font-medium truncate" title={product.name}>{product.name}</div>
-              <div className="text-muted-foreground">
-                ${product.price} × {product.quantity}
-              </div>
+                          <div className="text-muted-foreground">
+              {formatPrice(product.price)} × {product.quantity}
+            </div>
             </div>
           </div>
         ))}
@@ -308,14 +308,14 @@ export function OrdersDataTable({
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>
-              Orders ({orders.length})
+              Orders List ({orders.length})
               {inspectedOrder && (
                 <span className="ml-2 text-sm font-normal text-blue-600 dark:text-blue-400">
                   • Inspecting {inspectedOrder.orderNumber}
                 </span>
               )}
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="mt-2">
               {inspectedOrder
                 ? `Inspecting order ${inspectedOrder.orderNumber} - click the expand button to return to full view`
                 : "Complete view of all orders with detailed information"
@@ -548,7 +548,7 @@ export function OrdersDataTable({
                         </TableCell>
                       )}
                       {visibleColumns.totalAmount && (
-                        <TableCell className="font-medium">${order.totalAmount.toFixed(2)}</TableCell>
+                        <TableCell className="font-medium">{formatPrice(order.totalAmount)}</TableCell>
                       )}
                       {visibleColumns.orderDate && (
                         <TableCell>{format(new Date(order.orderDate), "dd MMM, yyyy")}</TableCell>
