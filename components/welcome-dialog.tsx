@@ -13,7 +13,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Clock, Package, TrendingUp, Users, ArrowRight, Play } from "lucide-react"
+import { Clock, Package, TrendingUp, Users, Play } from "lucide-react"
 
 export function WelcomeDialog() {
   const [open, setOpen] = useState(false)
@@ -59,7 +59,7 @@ export function WelcomeDialog() {
               How Timeflies Works
             </DialogTitle>
             <DialogDescription className="text-base leading-relaxed">
-              Let's walk through the key features and how to use them effectively.
+              Let&apos;s walk through the key features and how to use them effectively.
             </DialogDescription>
           </DialogHeader>
 
