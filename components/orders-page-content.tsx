@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useQuery } from "convex/react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
+import { useNavigationLoading } from "@/hooks/use-navigation-loading"
 import { api } from "../convex/_generated/api"
 import { OrdersFilters } from "@/components/orders-filters-new"
 import { OrdersDataTable } from "@/components/orders-data-table"
@@ -67,7 +68,7 @@ interface OrdersPageContentProps {
 }
 
 export function OrdersPageContent({ initialOrderId, initialSearch, initialOrderStatus }: OrdersPageContentProps) {
-  const router = useRouter()
+  const router = useNavigationLoading()
   const searchParams = useSearchParams()
   const ordersFromDB = useQuery(api.orders.getOrdersWithProviderData)
   const [orders, setOrders] = useState<Order[]>([])

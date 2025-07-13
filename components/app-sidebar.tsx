@@ -1,9 +1,9 @@
 "use client"
 
 import { BarChart3, Clock, Home, Package, Settings, ShoppingCart, Users, Linkedin, DollarSign, Target } from "lucide-react"
-import { useRouter } from "next/navigation"
 import { usePathname } from "next/navigation"
 import { useTiendanubeStatus } from "@/hooks/use-tiendanube-status"
+import { useNavigationLoading } from "@/hooks/use-navigation-loading"
 import { useState, useEffect } from "react"
 
 import {
@@ -73,7 +73,7 @@ const menuItems = [
 ]
 
 export function AppSidebar() {
-  const router = useRouter()
+  const router = useNavigationLoading()
   const pathname = usePathname()
   const { tiendanubeStatus, loading } = useTiendanubeStatus()
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())

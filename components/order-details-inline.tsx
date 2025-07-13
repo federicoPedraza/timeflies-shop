@@ -28,7 +28,7 @@ import {
 import { format } from "date-fns"
 import type { Order } from "@/components/orders-page-content"
 import { capitalizeFirstLetter, formatPrice, numberToWords } from "@/lib/utils"
-import { useRouter } from "next/navigation"
+import { useNavigationLoading } from "@/hooks/use-navigation-loading"
 import { useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { ShippingAddressMap } from "@/components/shipping-address-map"
@@ -66,7 +66,7 @@ const paymentMethodLabels = {
 export const OrderDetailsInline = memo(function OrderDetailsInline({ order, showShareAndOpenButtons, onOpenTiendaNubeCustomer }: OrderDetailsInlineProps) {
   const [productsOpen, setProductsOpen] = useState(true)
   const [copied, setCopied] = useState(false)
-  const router = useRouter()
+  const router = useNavigationLoading()
 
   const handleShare = useCallback(() => {
     navigator.clipboard.writeText(window.location.href)

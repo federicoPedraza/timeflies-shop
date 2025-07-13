@@ -1,7 +1,7 @@
 "use client"
 
 import { use } from "react"
-import { useRouter } from "next/navigation"
+import { useNavigationLoading } from "@/hooks/use-navigation-loading"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -20,7 +20,7 @@ export default function OrderPage({ params }: OrderPageProps) {
   const { orderId } = use(params);
   const orders = useQuery(api.orders.getOrdersWithProviderData);
   const [copied, setCopied] = useState(false);
-  const router = useRouter();
+  const router = useNavigationLoading();
 
   // Find the order by Convex _id
   const order = useMemo(() => {

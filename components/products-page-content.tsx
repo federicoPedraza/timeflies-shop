@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useQuery } from "convex/react"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useSearchParams } from "next/navigation"
+import { useNavigationLoading } from "@/hooks/use-navigation-loading"
 import { api } from "../convex/_generated/api"
 import { ProductsFilters } from "@/components/products-filters"
 import { ProductsDataTable } from "@/components/products-data-table"
@@ -58,7 +59,7 @@ interface ProductsPageContentProps {
 }
 
 export function ProductsPageContent({ initialProductId, initialSearch, initialStockStatus }: ProductsPageContentProps) {
-  const router = useRouter()
+  const router = useNavigationLoading()
   const searchParams = useSearchParams()
   const productsFromDB = useQuery(api.products.getProductsWithProviderData)
   const productSalesStats = useQuery(api.products.getProductSalesStats)

@@ -574,6 +574,16 @@ export const getOrdersWithProviderData = query({
         "fulfilled": "delivered",
       };
 
+      // Determine final order status based on payment and shipping status
+      let finalOrderStatus = orderStatusMap[order.status] || "pending";
+      const finalPaymentStatus = paymentStatusMap[order.payment_status] || "pending";
+      const finalShippingStatus = shippingStatusMap[order.shipping_status] || "unshipped";
+
+      // Rule: Orders that are paid and shipped are considered Delivered
+      if (finalPaymentStatus === "paid" && finalShippingStatus === "shipped") {
+        finalOrderStatus = "delivered";
+      }
+
       return {
         id: order._id,
         provider: "tiendanube" as const,
@@ -586,10 +596,10 @@ export const getOrdersWithProviderData = query({
           id: customerId,
         },
         products,
-        orderStatus: orderStatusMap[order.status] || "pending" as any,
-        paymentStatus: paymentStatusMap[order.payment_status] || "pending" as any,
+        orderStatus: finalOrderStatus as any,
+        paymentStatus: finalPaymentStatus as any,
         paymentMethod: paymentMethodMap[order.gateway] || "credit_card" as any,
-        shippingStatus: shippingStatusMap[order.shipping_status] || "unshipped" as any,
+        shippingStatus: finalShippingStatus as any,
         totalAmount: total,
         shippingCost,
         taxAmount: Math.max(0, taxAmount),

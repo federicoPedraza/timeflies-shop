@@ -1,7 +1,7 @@
 "use client"
 
 import { use } from "react"
-import { useRouter } from "next/navigation"
+import { useNavigationLoading } from "@/hooks/use-navigation-loading"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -20,7 +20,7 @@ export default function ProductPage({ params }: ProductPageProps) {
   const { productId } = use(params);
   const products = useQuery(api.products.getProductsWithProviderData);
   const [copied, setCopied] = useState(false);
-  const router = useRouter();
+  const router = useNavigationLoading();
 
   // Find the product by Convex _id
   const product = useMemo(() => {

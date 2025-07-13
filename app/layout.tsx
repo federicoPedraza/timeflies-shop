@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import ConvexClientProvider from "@/components/ConvexClientProvider";
 import { AuthProvider } from "@/components/AuthProvider";
+import { NavigationLoading } from "@/components/navigation-loading";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
+        <NavigationLoading />
         <AuthProvider>
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </AuthProvider>

@@ -6,10 +6,10 @@ import { Clock, TrendingUp, Award, DollarSign, BarChart3 } from "lucide-react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { cn } from "@/lib/utils"
-import { useRouter } from "next/navigation"
+import { useNavigationLoading } from "@/hooks/use-navigation-loading"
 
 export function ClocksSoldFameChart() {
-  const router = useRouter()
+  const router = useNavigationLoading()
   const salesRanking = useQuery(api.products.getProductSalesRanking)
 
   if (!salesRanking) {

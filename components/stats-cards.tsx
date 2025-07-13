@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Clock, DollarSign, ShoppingCart, ArrowRight, Warehouse, AlertTriangle, ExternalLink, TrendingUp, RefreshCw, ShoppingBag, HelpCircle } from "lucide-react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
-import { useRouter } from "next/navigation"
+import { useNavigationLoading } from "@/hooks/use-navigation-loading"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/components/AuthProvider"
@@ -26,7 +26,7 @@ export function StatsCards({
   selectedCard?: string | null
   onCardSelect?: (cardTitle: string | null) => void
 }) {
-  const router = useRouter()
+  const router = useNavigationLoading()
   const [refreshingCheckouts, setRefreshingCheckouts] = useState(false)
   const { makeAuthenticatedRequest } = useAuth()
   const dashboardStats = useQuery(api.products.getDashboardStats)
