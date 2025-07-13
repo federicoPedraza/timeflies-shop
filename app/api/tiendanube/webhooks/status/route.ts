@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { getUserCredentials } from '../../../../../lib/tiendanube-auth';
 
 interface TiendanubeWebhook {
   id: number;
@@ -8,26 +9,47 @@ interface TiendanubeWebhook {
   updated_at: string;
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   console.log('🚀 [Tiendanube Webhooks Status] Endpoint called');
 
   try {
-    // Get configuration from environment
-    const accessToken = process.env.TIENDANUBE_ACCESS_TOKEN;
-    const userId = process.env.TIENDANUBE_USER_ID;
-    const userAgent = process.env.TIENDANUBE_USER_AGENT;
+    // Get user ID from request headers (set by frontend)
+    const userId = request.headers.get('x-tiendanube-user-id');
+    console.log('👤 [Tiendanube Webhooks Status] User ID from header:', userId);
 
-    if (!accessToken || !userId || !userAgent) {
-      console.log('❌ [Tiendanube Webhooks Status] Missing environment variables');
+    if (!userId) {
+      console.log('❌ [Tiendanube Webhooks Status] No user ID provided in header');
       return NextResponse.json(
-        { error: 'Tiendanube configuration not found' },
+        { error: 'User ID required in x-tiendanube-user-id header' },
+        { status: 400 }
+      );
+    }
+
+    // Get user credentials from Convex
+    const credentials = await getUserCredentials(userId);
+    if (!credentials) {
+      console.log('❌ [Tiendanube Webhooks Status] No credentials found for user:', userId);
+      return NextResponse.json(
+        { error: 'User credentials not found. Please re-authenticate.' },
+        { status: 401 }
+      );
+    }
+
+    const userAgent = process.env.TIENDANUBE_USER_AGENT;
+    console.log('⚙️ [Tiendanube Webhooks Status] Environment variables:');
+    console.log('   - TIENDANUBE_USER_AGENT:', userAgent ? 'Present' : 'Missing');
+
+    if (!userAgent) {
+      console.log('❌ [Tiendanube Webhooks Status] Missing user agent from .env');
+      return NextResponse.json(
+        { error: 'TIENDANUBE_USER_AGENT not configured in .env' },
         { status: 500 }
       );
     }
 
     const webhooksUrl = `https://api.tiendanube.com/2025-03/${userId}/webhooks`;
     const headers = {
-      'Authentication': `bearer ${accessToken}`,
+      'Authentication': `bearer ${credentials.access_token}`,
       'User-Agent': userAgent,
       'Content-Type': 'application/json; charset=utf-8',
     };

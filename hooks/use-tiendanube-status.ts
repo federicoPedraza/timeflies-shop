@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useState } from "react"
+import { useAuth } from "@/components/AuthProvider"
 
 interface TiendanubeStatus {
   status: boolean;
@@ -18,12 +19,12 @@ interface TiendanubeStatus {
 export function useTiendanubeStatus() {
   const [tiendanubeStatus, setTiendanubeStatus] = useState<TiendanubeStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const { makeAuthenticatedRequest } = useAuth();
 
   useEffect(() => {
     async function checkTiendanubeStatus() {
       try {
-        // Usar el token del .env en lugar del localStorage
-        const response = await fetch('/api/tiendanube/store', {
+        const response = await makeAuthenticatedRequest('/api/tiendanube/store', {
           headers: {
             'Content-Type': 'application/json',
           }
@@ -49,7 +50,7 @@ export function useTiendanubeStatus() {
     }
 
     checkTiendanubeStatus();
-  }, []);
+  }, [makeAuthenticatedRequest]);
 
   return { tiendanubeStatus, loading };
 }

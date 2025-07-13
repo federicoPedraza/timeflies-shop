@@ -1,6 +1,7 @@
 "use client"
 
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { RevenueChart, useRevenueMetrics } from "@/components/revenue-chart"
 import { ProductPerformanceAnalytics } from "@/components/product-performance-analytics"
 import { StockAnalytics } from "@/components/stock-analytics"
@@ -98,152 +99,154 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <TooltipProvider>
-      <DashboardLayout>
-        <div className="space-y-2">
-          {/* Header */}
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-gray-600" />
-            <h1 className="text-2xl font-bold">Analytics</h1>
-          </div>
-
-          {/* Profits Section */}
-          <div ref={profitsRef} className="space-y-4">
+    <ProtectedRoute>
+      <TooltipProvider>
+        <DashboardLayout>
+          <div className="space-y-2">
+            {/* Header */}
             <div className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5 text-green-600" />
-              <h2 className="text-xl font-semibold">Profits & Revenue</h2>
+              <BarChart3 className="h-6 w-6 text-gray-600" />
+              <h1 className="text-2xl font-bold">Analytics</h1>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Revenue Chart */}
-              <RevenueChart />
+            {/* Profits Section */}
+            <div ref={profitsRef} className="space-y-4">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5 text-green-600" />
+                <h2 className="text-xl font-semibold">Profits & Revenue</h2>
+              </div>
 
-              {/* Additional Metrics Card */}
-              <Card className="h-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-blue-600" />
-                    Key Metrics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-blue-50 p-4 rounded-lg">
-                      <div className="text-sm text-blue-600 font-medium">Profit Margin</div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Revenue Chart */}
+                <RevenueChart />
+
+                {/* Additional Metrics Card */}
+                <Card className="h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-blue-600" />
+                      Key Metrics
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-blue-50 p-4 rounded-lg">
+                        <div className="text-sm text-blue-600 font-medium">Profit Margin</div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-2xl font-bold text-blue-700 cursor-help">
+                              {profitsLoading ? '--' : `${profitMargin.toFixed(1)}%`}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{profitsLoading ? '--' : `${numberToWords(profitMargin)} percent`}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg">
+                        <div className="text-sm text-green-600 font-medium">Total Profit</div>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <div className="text-2xl font-bold text-green-700 cursor-help">
+                              {profitsLoading ? '--' : formatPrice(totalProfit)}
+                            </div>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>{profitsLoading ? '--' : numberToWords(totalProfit)}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="text-sm text-gray-600 font-medium">Top Performing Day</div>
+                      <div className="text-lg font-semibold">
+                        {profitsLoading || !maxRevenueDay ? '--' : (
+                          <div>
+                            <div>{maxRevenueDay.date}</div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="text-sm text-green-600 cursor-help">
+                                  {formatPrice(maxRevenueDay.revenue)}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{numberToWords(maxRevenueDay.revenue)}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="text-sm text-gray-600 font-medium">Revenue Trend</div>
+                      <div className={`text-lg font-semibold ${getTrendColor(revenueTrend)} flex items-center gap-2`}>
+                        {getTrendIcon(revenueTrend)}
+                        {getTrendText(revenueTrend)}
+                      </div>
+                    </div>
+
+                    <div className="bg-orange-50 p-4 rounded-lg">
+                      <div className="text-sm text-orange-600 font-medium">Total Costs</div>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <div className="text-2xl font-bold text-blue-700 cursor-help">
-                            {profitsLoading ? '--' : `${profitMargin.toFixed(1)}%`}
+                          <div className="text-lg font-semibold text-orange-700 cursor-help">
+                            {profitsLoading ? '--' : formatPrice(totalCost)}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent>
-                          <p>{profitsLoading ? '--' : `${numberToWords(profitMargin)} percent`}</p>
+                          <p>{profitsLoading ? '--' : numberToWords(totalCost)}</p>
                         </TooltipContent>
                       </Tooltip>
                     </div>
-                    <div className="bg-green-50 p-4 rounded-lg">
-                      <div className="text-sm text-green-600 font-medium">Total Profit</div>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div className="text-2xl font-bold text-green-700 cursor-help">
-                            {profitsLoading ? '--' : formatPrice(totalProfit)}
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{profitsLoading ? '--' : numberToWords(totalProfit)}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="text-sm text-gray-600 font-medium">Top Performing Day</div>
-                    <div className="text-lg font-semibold">
-                      {profitsLoading || !maxRevenueDay ? '--' : (
-                        <div>
-                          <div>{maxRevenueDay.date}</div>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <div className="text-sm text-green-600 cursor-help">
-                                {formatPrice(maxRevenueDay.revenue)}
-                              </div>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{numberToWords(maxRevenueDay.revenue)}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+            {/* Product Performance Analytics */}
+            <div ref={performanceRef} className="space-y-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-blue-600" />
+                <h2 className="text-xl font-semibold">Product Performance Analytics</h2>
+              </div>
+              <ProductPerformanceAnalytics onLoaded={() => setPerformanceLoaded(true)} />
+            </div>
 
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="text-sm text-gray-600 font-medium">Revenue Trend</div>
-                    <div className={`text-lg font-semibold ${getTrendColor(revenueTrend)} flex items-center gap-2`}>
-                      {getTrendIcon(revenueTrend)}
-                      {getTrendText(revenueTrend)}
-                    </div>
-                  </div>
+            {/* Stock Analytics */}
+            <div ref={inventoryRef} className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Package className="h-5 w-5 text-indigo-600" />
+                <h2 className="text-xl font-semibold">Stock Analytics</h2>
+              </div>
+              <StockAnalytics onLoaded={() => setInventoryLoaded(true)} />
+            </div>
 
-                  <div className="bg-orange-50 p-4 rounded-lg">
-                    <div className="text-sm text-orange-600 font-medium">Total Costs</div>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="text-lg font-semibold text-orange-700 cursor-help">
-                          {profitsLoading ? '--' : formatPrice(totalCost)}
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>{profitsLoading ? '--' : numberToWords(totalCost)}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </CardContent>
-              </Card>
+            {/* Future Sections Placeholder */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-semibold">Coming Soon</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Card className="p-6 text-center">
+                  <div className="text-muted-foreground mb-2">👥</div>
+                  <h3 className="font-medium">Customer Insights</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Customer behavior and demographics</p>
+                </Card>
+                <Card className="p-6 text-center">
+                  <div className="text-muted-foreground mb-2">🚚</div>
+                  <h3 className="font-medium">Shipping Analytics</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Delivery performance and costs</p>
+                </Card>
+                <Card className="p-6 text-center">
+                  <div className="text-muted-foreground mb-2">📈</div>
+                  <h3 className="font-medium">Advanced Analytics</h3>
+                  <p className="text-sm text-muted-foreground mt-1">Predictive analytics and trends</p>
+                </Card>
+              </div>
             </div>
           </div>
-
-          {/* Product Performance Analytics */}
-          <div ref={performanceRef} className="space-y-4">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5 text-blue-600" />
-              <h2 className="text-xl font-semibold">Product Performance Analytics</h2>
-            </div>
-            <ProductPerformanceAnalytics onLoaded={() => setPerformanceLoaded(true)} />
-          </div>
-
-          {/* Stock Analytics */}
-          <div ref={inventoryRef} className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Package className="h-5 w-5 text-indigo-600" />
-              <h2 className="text-xl font-semibold">Stock Analytics</h2>
-            </div>
-            <StockAnalytics onLoaded={() => setInventoryLoaded(true)} />
-          </div>
-
-          {/* Future Sections Placeholder */}
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold">Coming Soon</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <Card className="p-6 text-center">
-                <div className="text-muted-foreground mb-2">👥</div>
-                <h3 className="font-medium">Customer Insights</h3>
-                <p className="text-sm text-muted-foreground mt-1">Customer behavior and demographics</p>
-              </Card>
-              <Card className="p-6 text-center">
-                <div className="text-muted-foreground mb-2">🚚</div>
-                <h3 className="font-medium">Shipping Analytics</h3>
-                <p className="text-sm text-muted-foreground mt-1">Delivery performance and costs</p>
-              </Card>
-              <Card className="p-6 text-center">
-                <div className="text-muted-foreground mb-2">📈</div>
-                <h3 className="font-medium">Advanced Analytics</h3>
-                <p className="text-sm text-muted-foreground mt-1">Predictive analytics and trends</p>
-              </Card>
-            </div>
-          </div>
-        </div>
-      </DashboardLayout>
-    </TooltipProvider>
+        </DashboardLayout>
+      </TooltipProvider>
+    </ProtectedRoute>
   )
 }

@@ -2,6 +2,7 @@
 
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProductsPageContent } from "@/components/products-page-content"
+import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { useSearchParams } from "next/navigation"
 import { useEffect, useState, Suspense } from "react"
 
@@ -26,10 +27,12 @@ function ProductsPageWithSearchParams() {
 
 export default function ProductsPage() {
   return (
-    <DashboardLayout>
-      <Suspense fallback={<div>Loading...</div>}>
-        <ProductsPageWithSearchParams />
-      </Suspense>
-    </DashboardLayout>
+    <ProtectedRoute>
+      <DashboardLayout>
+        <Suspense fallback={<div>Loading...</div>}>
+          <ProductsPageWithSearchParams />
+        </Suspense>
+      </DashboardLayout>
+    </ProtectedRoute>
   )
 }

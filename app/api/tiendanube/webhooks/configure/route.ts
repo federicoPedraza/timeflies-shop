@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getUserCredentials } from '../../../../../lib/tiendanube-auth';
 
 interface WebhookEvent {
   event: string;
@@ -9,11 +10,18 @@ export async function POST(request: NextRequest) {
   console.log('🚀 [Tiendanube Webhooks Configure] Endpoint called');
 
   try {
-    const { webhookUrl } = await request.json();
+    const { webhookUrl, userId } = await request.json();
 
     if (!webhookUrl) {
       return NextResponse.json(
         { error: 'webhookUrl is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'userId is required' },
         { status: 400 }
       );
     }
@@ -28,15 +36,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get configuration from environment
-    const accessToken = process.env.TIENDANUBE_ACCESS_TOKEN;
-    const userId = process.env.TIENDANUBE_USER_ID;
-    const userAgent = process.env.TIENDANUBE_USER_AGENT;
-
-    if (!accessToken || !userId || !userAgent) {
-      console.log('❌ [Tiendanube Webhooks Configure] Missing environment variables');
+    // Get user credentials from Convex
+    const credentials = await getUserCredentials(userId);
+    if (!credentials) {
+      console.log('❌ [Tiendanube Webhooks Configure] No credentials found for user:', userId);
       return NextResponse.json(
-        { error: 'Tiendanube configuration not found' },
+        { error: 'User credentials not found. Please re-authenticate.' },
+        { status: 401 }
+      );
+    }
+
+    const userAgent = process.env.TIENDANUBE_USER_AGENT;
+    if (!userAgent) {
+      console.log('❌ [Tiendanube Webhooks Configure] Missing user agent from .env');
+      return NextResponse.json(
+        { error: 'TIENDANUBE_USER_AGENT not configured in .env' },
         { status: 500 }
       );
     }
@@ -93,7 +107,7 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = `https://api.tiendanube.com/2025-03/${userId}/webhooks`;
     const headers = {
-      'Authentication': `bearer ${accessToken}`,
+      'Authentication': `bearer ${credentials.access_token}`,
       'User-Agent': userAgent,
       'Content-Type': 'application/json; charset=utf-8',
     };

@@ -1,9 +1,9 @@
 import { useState } from 'react';
+import { useAuth } from '@/components/AuthProvider';
 
 interface SyncResult {
   success: boolean;
   summary: {
-    total: number;
     added: number;
     updated: number;
     errors: number;
@@ -14,15 +14,17 @@ interface SyncResult {
 
 export function useOrderSync() {
   const [syncing, setSyncing] = useState(false);
-  const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { makeAuthenticatedRequest } = useAuth();
 
-  const syncOrders = async (provider: string = 'tiendanube'): Promise<SyncResult | null> => {
+  const syncOrders = async (provider: string = 'tiendanube'): Promise<boolean> => {
     setSyncing(true);
     setError(null);
+    setSyncResult(null);
 
     try {
-      const response = await fetch('/api/orders/sync', {
+      const response = await makeAuthenticatedRequest('/api/orders/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -30,19 +32,18 @@ export function useOrderSync() {
         body: JSON.stringify({ provider }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        throw new Error(data.error || 'Failed to sync orders');
       }
 
-      const result: SyncResult = await response.json();
-      setLastSyncResult(result);
-      return result;
+      setSyncResult(data);
+      return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
-      console.error('Error syncing orders:', err);
-      return null;
+      return false;
     } finally {
       setSyncing(false);
     }
@@ -52,16 +53,16 @@ export function useOrderSync() {
     setError(null);
   };
 
-  const clearLastSyncResult = () => {
-    setLastSyncResult(null);
+  const clearResult = () => {
+    setSyncResult(null);
   };
 
   return {
     syncing,
-    lastSyncResult,
+    syncResult,
     error,
     syncOrders,
     clearError,
-    clearLastSyncResult,
+    clearResult,
   };
 }

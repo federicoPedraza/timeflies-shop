@@ -1,17 +1,19 @@
 "use client"
 
-import { use } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { OrderDetailsInline } from "@/components/order-details-inline";
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { useMemo, useState, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Share2, ExternalLink } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { use } from "react"
+import { useRouter } from "next/navigation"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import { ProtectedRoute } from "@/components/ProtectedRoute"
+import { OrderDetailsInline } from "@/components/order-details-inline"
+import { CopyIdButton } from "@/components/copy-id-button"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, Share2, ExternalLink, User } from "lucide-react"
+import { useMemo, useState, useCallback } from "react"
 
 interface OrderPageProps {
-  params: Promise<{ orderId: string }>;
+  params: Promise<{ orderId: string }>
 }
 
 export default function OrderPage({ params }: OrderPageProps) {
@@ -54,70 +56,80 @@ export default function OrderPage({ params }: OrderPageProps) {
 
   if (orders === undefined) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight">Loading Order...</h2>
-            <p className="text-muted-foreground">Fetching order details...</p>
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold tracking-tight">Loading Order...</h2>
+              <p className="text-muted-foreground">Fetching order details...</p>
+            </div>
           </div>
-        </div>
-      </DashboardLayout>
+        </DashboardLayout>
+      </ProtectedRoute>
     );
   }
 
   if (!order) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight">Order Not Found</h2>
-            <p className="text-muted-foreground">No order found with the provided ID.</p>
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold tracking-tight">Order Not Found</h2>
+              <p className="text-muted-foreground">The order you're looking for doesn't exist.</p>
+              <Button onClick={handleBackToOrders} className="mt-4">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Orders
+              </Button>
+            </div>
           </div>
-        </div>
-      </DashboardLayout>
+        </DashboardLayout>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="w-full py-8 px-8">
-        {/* Navigation Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleBackToOrders}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Orders
-            </Button>
-            {order.providerOrderId && (
-              <Button
-                variant="outline"
-                onClick={handleOpenTiendaNubeAdmin}
-                className="flex items-center gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                View Order in TiendaNube
+    <ProtectedRoute>
+      <DashboardLayout>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="sm" onClick={handleBackToOrders}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Orders
               </Button>
-            )}
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">{order.orderNumber}</h1>
+                <p className="text-muted-foreground">
+                  {order.customer?.name} • {order.customer?.email}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <CopyIdButton
+                orderId={order.providerOrderId}
+                className=""
+              />
+              <Button variant="outline" size="sm" onClick={handleShare}>
+                <Share2 className="mr-2 h-4 w-4" />
+                {copied ? "Copied!" : "Share"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleOpenTiendaNubeAdmin}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View in TiendaNube
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleOpenTiendaNubeCustomer}>
+                <User className="mr-2 h-4 w-4" />
+                View Customer
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleShare}
-            className="flex items-center gap-2"
-          >
-            <Share2 className="h-4 w-4" />
-            {copied ? "Copied!" : "Share"}
-          </Button>
-        </div>
 
-        <OrderDetailsInline
-          order={order}
-          onOpenTiendaNubeCustomer={handleOpenTiendaNubeCustomer}
-        />
-      </div>
-    </DashboardLayout>
+          {/* Order Details */}
+          <OrderDetailsInline order={order} showShareAndOpenButtons={false} />
+        </div>
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }

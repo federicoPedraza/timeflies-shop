@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
+import { getUserCredentials } from '@/lib/tiendanube-auth';
 
 const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
@@ -29,21 +30,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get access token and store ID from environment variables
-    const accessToken = process.env.TIENDANUBE_ACCESS_TOKEN;
-    const storeId = process.env.TIENDANUBE_USER_ID;
+    // Get user ID from request headers (set by frontend)
+    const userId = request.headers.get('x-tiendanube-user-id');
+    console.log('👤 [Sync Checkouts] User ID from header:', userId);
 
-    if (!accessToken || !storeId) {
-      console.error('❌ [Sync Checkouts] TIENDANUBE_ACCESS_TOKEN or TIENDANUBE_USER_ID not configured');
+    if (!userId) {
+      console.log('❌ [Sync Checkouts] No user ID provided in header');
       return NextResponse.json(
-        { error: 'TiendaNube credentials not configured' },
-        { status: 500 }
+        { error: 'User ID required in x-tiendanube-user-id header' },
+        { status: 400 }
       );
     }
 
-    console.log(`📦 [Sync Checkouts] Syncing checkouts for store ${storeId}`);
+    // Get user credentials from Convex
+    const credentials = await getUserCredentials(userId);
+    if (!credentials) {
+      console.log('❌ [Sync Checkouts] No credentials found for user:', userId);
+      return NextResponse.json(
+        { error: 'User credentials not found. Please re-authenticate.' },
+        { status: 401 }
+      );
+    }
 
-        let allCheckouts: any[] = [];
+    console.log(`📦 [Sync Checkouts] Syncing checkouts for store ${userId}`);
+
+    let allCheckouts: any[] = [];
     let page = 1;
     const perPage = 50;
     let hasMore = true;
@@ -54,12 +65,12 @@ export async function POST(request: NextRequest) {
     while (hasMore) {
       try {
         const response = await fetch(
-          `https://api.tiendanube.com/2025-03/${storeId}/checkouts?page=${page}&per_page=${perPage}`,
+          `https://api.tiendanube.com/2025-03/${userId}/checkouts?page=${page}&per_page=${perPage}`,
           {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
-              'Authentication': `bearer ${accessToken}`,
+              'Authentication': `bearer ${credentials.access_token}`,
             },
           }
         );

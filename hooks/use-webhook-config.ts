@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@/components/AuthProvider';
 
 interface WebhookConfigResult {
   total: number;
@@ -18,6 +19,7 @@ export function useWebhookConfig() {
   const [configuring, setConfiguring] = useState(false);
   const [lastResult, setLastResult] = useState<WebhookConfigResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { makeAuthenticatedRequest, userId } = useAuth();
 
   const configureWebhooks = async (webhookUrl: string): Promise<boolean> => {
     setConfiguring(true);
@@ -25,12 +27,12 @@ export function useWebhookConfig() {
     setLastResult(null);
 
     try {
-      const response = await fetch('/api/tiendanube/webhooks/configure', {
+      const response = await makeAuthenticatedRequest('/api/tiendanube/webhooks/configure', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ webhookUrl }),
+        body: JSON.stringify({ webhookUrl, userId }),
       });
 
       const data = await response.json();

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../../convex/_generated/api';
+import { getUserCredentials } from '../../../../lib/tiendanube-auth';
 
 export async function POST(request: NextRequest) {
   console.log('🔄 [Sync Orders] Endpoint called');
@@ -26,47 +27,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obtener el token de acceso desde las variables de entorno
-    const accessToken = process.env.TIENDANUBE_ACCESS_TOKEN;
-    const storeId = process.env.TIENDANUBE_USER_ID;
+    // Get user ID from request headers (set by frontend)
+    const userId = request.headers.get('x-tiendanube-user-id');
+    console.log('👤 [Sync Orders] User ID from header:', userId);
 
-    if (!accessToken || !storeId) {
-      console.error('❌ [Sync Orders] TIENDANUBE_ACCESS_TOKEN o TIENDANUBE_USER_ID no están configurados');
+    if (!userId) {
+      console.log('❌ [Sync Orders] No user ID provided in header');
       return NextResponse.json(
-        { error: 'TiendaNube credentials not configured' },
-        { status: 500 }
+        { error: 'User ID required in x-tiendanube-user-id header' },
+        { status: 400 }
       );
     }
 
-    console.log(`📦 [Sync Orders] Sincronizando órdenes para store ${storeId}`);
+    // Get user credentials from Convex
+    const credentials = await getUserCredentials(userId);
+    if (!credentials) {
+      console.log('❌ [Sync Orders] No credentials found for user:', userId);
+      return NextResponse.json(
+        { error: 'User credentials not found. Please re-authenticate.' },
+        { status: 401 }
+      );
+    }
+
+    console.log(`📦 [Sync Orders] Sincronizando órdenes para store ${userId}`);
 
     // Obtener todas las órdenes de TiendaNube
     const tiendanubeResponse = await fetch(
-      `https://api.tiendanube.com/2025-03/${storeId}/orders?per_page=100`,
+      `https://api.tiendanube.com/2025-03/${userId}/orders?per_page=100`,
       {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authentication': `bearer ${accessToken}`,
+          'Authentication': `bearer ${credentials.access_token}`,
         },
       }
     );
 
     if (!tiendanubeResponse.ok) {
-      console.error(`❌ [Sync Orders] Error obteniendo órdenes de TiendaNube: ${tiendanubeResponse.status}`);
       const errorText = await tiendanubeResponse.text();
-      console.error(`📄 [Sync Orders] Error response: ${errorText}`);
+      console.error('❌ [Sync Orders] Error from TiendaNube API:', tiendanubeResponse.status, errorText);
       return NextResponse.json(
         { error: `TiendaNube API error: ${tiendanubeResponse.status}` },
-        { status: tiendanubeResponse.status }
+        { status: 500 }
       );
     }
 
     const ordersData = await tiendanubeResponse.json();
-    console.log(`📊 [Sync Orders] ${ordersData.length} órdenes obtenidas de TiendaNube`);
+    console.log(`📦 [Sync Orders] Obtenidas ${ordersData.length} órdenes de TiendaNube`);
 
     const results = {
-      total: ordersData.length,
       added: 0,
       updated: 0,
       errors: 0,

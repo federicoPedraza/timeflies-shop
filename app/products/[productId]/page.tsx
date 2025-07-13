@@ -1,17 +1,19 @@
 "use client"
 
-import { use } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { ProductDetailsInline } from "@/components/product-details-inline";
-import { DashboardLayout } from "@/components/dashboard-layout";
-import { useMemo, useState, useCallback, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Share2, ExternalLink } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { use } from "react"
+import { useRouter } from "next/navigation"
+import { useQuery } from "convex/react"
+import { api } from "@/convex/_generated/api"
+import { DashboardLayout } from "@/components/dashboard-layout"
+import { ProtectedRoute } from "@/components/ProtectedRoute"
+import { ProductDetailsInline } from "@/components/product-details-inline"
+import { CopyIdButton } from "@/components/copy-id-button"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, Share2, ExternalLink } from "lucide-react"
+import { useMemo, useState, useCallback, useEffect } from "react"
 
 interface ProductPageProps {
-  params: Promise<{ productId: string }>;
+  params: Promise<{ productId: string }>
 }
 
 export default function ProductPage({ params }: ProductPageProps) {
@@ -56,70 +58,76 @@ export default function ProductPage({ params }: ProductPageProps) {
 
   if (products === undefined) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight">Loading Product...</h2>
-            <p className="text-muted-foreground">Fetching product details...</p>
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold tracking-tight">Loading Product...</h2>
+              <p className="text-muted-foreground">Fetching product details...</p>
+            </div>
           </div>
-        </div>
-      </DashboardLayout>
+        </DashboardLayout>
+      </ProtectedRoute>
     );
   }
 
   if (!product) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold tracking-tight">Product Not Found</h2>
-            <p className="text-muted-foreground">No product found with the provided ID.</p>
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="flex items-center justify-center min-h-screen">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold tracking-tight">Product Not Found</h2>
+              <p className="text-muted-foreground">The product you're looking for doesn't exist.</p>
+              <Button onClick={handleBackToProducts} className="mt-4">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Products
+              </Button>
+            </div>
           </div>
-        </div>
-      </DashboardLayout>
+        </DashboardLayout>
+      </ProtectedRoute>
     );
   }
 
   return (
-    <DashboardLayout>
-      <div className="w-full py-8 px-8">
-        {/* Navigation Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              onClick={handleBackToProducts}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Products
-            </Button>
-            {product.providerProductId && (
-              <Button
-                variant="outline"
-                onClick={handleOpenTiendaNubeAdmin}
-                className="flex items-center gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                View Product in TiendaNube
+    <ProtectedRoute>
+      <DashboardLayout>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="outline" size="sm" onClick={handleBackToProducts}>
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Products
               </Button>
-            )}
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">{product.name}</h1>
+                <p className="text-muted-foreground">
+                  {product.category} • {product.sku}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <CopyIdButton
+                orderId={product.providerProductId}
+                className=""
+              />
+              <Button variant="outline" size="sm" onClick={handleShare}>
+                <Share2 className="mr-2 h-4 w-4" />
+                {copied ? "Copied!" : "Share"}
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleOpenTiendaNubeAdmin}>
+                <ExternalLink className="mr-2 h-4 w-4" />
+                View in TiendaNube
+              </Button>
+            </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleShare}
-            className="flex items-center gap-2"
-          >
-            <Share2 className="h-4 w-4" />
-            {copied ? "Copied!" : "Share"}
-          </Button>
-        </div>
 
-        <ProductDetailsInline
-          product={product}
-          showShareAndOpenButtons={false}
-        />
-      </div>
-    </DashboardLayout>
+          {/* Product Details */}
+          <ProductDetailsInline product={product} showShareAndOpenButtons={false} />
+        </div>
+      </DashboardLayout>
+    </ProtectedRoute>
   );
 }

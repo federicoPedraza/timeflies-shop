@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuth } from '@/components/AuthProvider';
 
 interface CheckoutSyncResult {
   success: boolean;
@@ -25,13 +26,14 @@ export function useCheckoutSync(): UseCheckoutSyncReturn {
   const [syncing, setSyncing] = useState(false);
   const [lastSyncResult, setLastSyncResult] = useState<CheckoutSyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { makeAuthenticatedRequest } = useAuth();
 
   const syncCheckouts = async (provider: string): Promise<CheckoutSyncResult | null> => {
     setSyncing(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/products/sync-checkouts', {
+      const response = await makeAuthenticatedRequest('/api/products/sync-checkouts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

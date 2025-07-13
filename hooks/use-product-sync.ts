@@ -1,10 +1,17 @@
 "use client"
-import { useState } from "react"
+import { useState } from 'react';
+import { useAuth } from '@/components/AuthProvider';
 
 interface SyncResult {
   success: boolean;
   provider: string;
   sync: {
+    added: number;
+    updated: number;
+    errors: number;
+    errors_details: string[];
+  };
+  imageSync: {
     added: number;
     updated: number;
     errors: number;
@@ -23,57 +30,48 @@ interface SyncResult {
   };
   summary: {
     total_products: number;
+    total_images: number;
     added: number;
     updated: number;
+    images_added: number;
+    images_updated: number;
     deleted: number;
     errors: number;
   };
 }
 
-interface SyncError {
-  error: string;
-  success: false;
-  details?: string;
-}
-
 export function useProductSync() {
   const [syncing, setSyncing] = useState(false);
-  const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
+  const [syncResult, setSyncResult] = useState<SyncResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { makeAuthenticatedRequest } = useAuth();
 
-  const syncProducts = async (provider: string): Promise<SyncResult | null> => {
+  const syncProducts = async (provider: string = 'tiendanube'): Promise<boolean> => {
     setSyncing(true);
     setError(null);
+    setSyncResult(null);
 
     try {
-      const response = await fetch('/api/products/refresh', {
+      const response = await makeAuthenticatedRequest('/api/products/refresh', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ provider })
+        body: JSON.stringify({ provider }),
       });
 
-      const data: SyncResult | SyncError = await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        const errorData = data as SyncError;
-        throw new Error(errorData.error || 'Failed to sync products');
+        throw new Error(data.error || 'Failed to sync products');
       }
 
-      if (!data.success) {
-        const errorData = data as SyncError;
-        throw new Error(errorData.error || 'Sync failed');
-      }
-
-      const syncResult = data as SyncResult;
-      setLastSyncResult(syncResult);
-      return syncResult;
-
+      setSyncResult(data);
+      return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(errorMessage);
-      return null;
+      return false;
     } finally {
       setSyncing(false);
     }
@@ -83,16 +81,16 @@ export function useProductSync() {
     setError(null);
   };
 
-  const clearLastSyncResult = () => {
-    setLastSyncResult(null);
+  const clearResult = () => {
+    setSyncResult(null);
   };
 
   return {
     syncing,
-    lastSyncResult,
+    syncResult,
     error,
     syncProducts,
     clearError,
-    clearLastSyncResult
+    clearResult,
   };
 }

@@ -2,6 +2,14 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  "tiendanube_user_credentials": defineTable({
+    user_id: v.string(),
+    access_token: v.string(), // Encrypted access token
+    business_id: v.union(v.string(), v.null()),
+    store_info: v.union(v.string(), v.null()), // JSON string of store info
+    created_at: v.number(),
+    updated_at: v.number(),
+  }).index("by_user_id", ["user_id"]),
   "tiendanube_products": defineTable({
     tiendanube_id: v.number(),
     tiendanube_product_id: v.number(),
@@ -127,8 +135,8 @@ export default defineSchema({
     createdAt: v.number(),
   }),
   "tiendanube_checkouts": defineTable({
-    tiendanube_id: v.number(),
-    store_id: v.number(),
+    tiendanube_id: v.union(v.number(), v.float64()),
+    store_id: v.union(v.number(), v.float64()),
     token: v.string(),
     abandoned_checkout_url: v.string(),
     contact_email: v.string(),
@@ -145,8 +153,8 @@ export default defineSchema({
     shipping_city: v.string(),
     shipping_province: v.string(),
     shipping_country: v.string(),
-    shipping_min_days: v.number(),
-    shipping_max_days: v.number(),
+    shipping_min_days: v.optional(v.number()),
+    shipping_max_days: v.optional(v.number()),
     billing_name: v.string(),
     billing_phone: v.union(v.string(), v.null()),
     billing_address: v.string(),
@@ -157,8 +165,8 @@ export default defineSchema({
     billing_city: v.string(),
     billing_province: v.string(),
     billing_country: v.string(),
-    shipping_cost_owner: v.string(),
-    shipping_cost_customer: v.string(),
+    shipping_cost_owner: v.optional(v.string()),
+    shipping_cost_customer: v.optional(v.string()),
     coupon: v.string(), // JSON string
     promotional_discount: v.string(), // JSON string
     subtotal: v.string(),
@@ -173,23 +181,23 @@ export default defineSchema({
     language: v.string(),
     gateway: v.union(v.string(), v.null()),
     gateway_id: v.union(v.string(), v.null()),
-    shipping: v.string(),
-    shipping_option: v.string(),
-    shipping_option_code: v.string(),
-    shipping_option_reference: v.union(v.string(), v.null()),
+    shipping: v.optional(v.string()),
+    shipping_option: v.optional(v.string()),
+    shipping_option_code: v.optional(v.string()),
+    shipping_option_reference: v.optional(v.union(v.string(), v.null())),
     shipping_pickup_details: v.union(v.string(), v.null()), // JSON string or null
-    shipping_tracking_number: v.union(v.string(), v.null()),
-    shipping_tracking_url: v.union(v.string(), v.null()),
-    shipping_store_branch_name: v.union(v.string(), v.null()),
-    shipping_pickup_type: v.string(),
-    shipping_suboption: v.string(), // JSON string
+    shipping_tracking_number: v.optional(v.union(v.string(), v.null())),
+    shipping_tracking_url: v.optional(v.union(v.string(), v.null())),
+    shipping_store_branch_name: v.optional(v.union(v.string(), v.null())),
+    shipping_pickup_type: v.optional(v.string()),
+    shipping_suboption: v.optional(v.string()), // JSON string
     extra: v.string(), // JSON string
     storefront: v.string(),
     note: v.union(v.string(), v.null()),
     created_at: v.string(),
     updated_at: v.string(),
     completed_at: v.union(v.string(), v.null()),
-    next_action: v.string(),
+    next_action: v.optional(v.string()),
     payment_details: v.string(), // JSON string
     attributes: v.string(), // JSON string
     products: v.string(), // JSON string

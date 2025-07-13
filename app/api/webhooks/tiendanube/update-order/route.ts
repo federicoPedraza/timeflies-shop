@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../../../convex/_generated/api';
+import { getUserCredentials } from '../../../../../lib/tiendanube-auth';
 
 export async function POST(request: NextRequest) {
   console.log('🔄 [Update Order Webhook] Endpoint called');
@@ -29,14 +30,13 @@ export async function POST(request: NextRequest) {
 
     console.log(`📦 [Update Order Webhook] Obteniendo orden ${orderId} para store ${storeId}`);
 
-    // Obtener el token de acceso desde las variables de entorno
-    const accessToken = process.env.TIENDANUBE_ACCESS_TOKEN;
-
-    if (!accessToken) {
-      console.error(`❌ [Update Order Webhook] TIENDANUBE_ACCESS_TOKEN no está configurado`);
+    // Get user credentials from Convex
+    const credentials = await getUserCredentials(storeId.toString());
+    if (!credentials) {
+      console.log('❌ [Update Order Webhook] No credentials found for store:', storeId);
       return NextResponse.json(
-        { error: 'TIENDANUBE_ACCESS_TOKEN not configured in .env' },
-        { status: 500 }
+        { error: 'Store credentials not found. Please re-authenticate.' },
+        { status: 401 }
       );
     }
 
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authentication': `bearer ${accessToken}`,
+          'Authentication': `bearer ${credentials.access_token}`,
         },
       }
     );

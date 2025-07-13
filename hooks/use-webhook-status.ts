@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/components/AuthProvider';
 
 interface TiendanubeWebhook {
   id: number;
@@ -26,11 +27,12 @@ export function useWebhookStatus() {
   const [checking, setChecking] = useState(false);
   const [webhookStatus, setWebhookStatus] = useState<WebhookStatusResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { makeAuthenticatedRequest } = useAuth();
 
   // Auto-check webhook status on mount
   useEffect(() => {
     checkWebhookStatus();
-  }, []);
+  }, [makeAuthenticatedRequest]);
 
   const checkWebhookStatus = async (): Promise<boolean> => {
     setChecking(true);
@@ -38,7 +40,7 @@ export function useWebhookStatus() {
     setWebhookStatus(null);
 
     try {
-      const response = await fetch('/api/tiendanube/webhooks/status', {
+      const response = await makeAuthenticatedRequest('/api/tiendanube/webhooks/status', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

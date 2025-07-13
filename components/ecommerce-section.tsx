@@ -15,8 +15,8 @@ import { useState } from "react"
 
 export function EcommerceSection() {
   const { tiendanubeStatus, loading } = useTiendanubeStatus();
-  const { syncing: syncingProducts, lastSyncResult: lastProductSyncResult, error: productError, syncProducts, clearError: clearProductError, clearLastSyncResult: clearLastProductSyncResult } = useProductSync();
-  const { syncing: syncingOrders, lastSyncResult: lastOrderSyncResult, error: orderError, syncOrders, clearError: clearOrderError, clearLastSyncResult: clearLastOrderSyncResult } = useOrderSync();
+  const { syncing: syncingProducts, syncResult: lastProductSyncResult, error: productError, syncProducts, clearError: clearProductError, clearResult: clearLastProductSyncResult } = useProductSync();
+  const { syncing: syncingOrders, syncResult: lastOrderSyncResult, error: orderError, syncOrders, clearError: clearOrderError, clearResult: clearLastOrderSyncResult } = useOrderSync();
   const { syncing: syncingCheckouts, lastSyncResult: lastCheckoutSyncResult, error: checkoutError, syncCheckouts, clearError: clearCheckoutError, clearLastSyncResult: clearLastCheckoutSyncResult } = useCheckoutSync();
   const { configuring, lastResult, error: webhookError, configureWebhooks, clearError: clearWebhookError, clearLastResult: clearWebhookResult } = useWebhookConfig();
   const { checking: checkingWebhookStatus, webhookStatus, error: webhookStatusError, checkWebhookStatus, clearError: clearWebhookStatusError } = useWebhookStatus();
@@ -367,7 +367,7 @@ export function EcommerceSection() {
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
                     <span className="text-blue-700 font-medium">Total Orders:</span>
-                    <span className="ml-2 text-blue-600">{lastOrderSyncResult.summary.total}</span>
+                    <span className="ml-2 text-blue-600">{lastOrderSyncResult.summary.added + lastOrderSyncResult.summary.updated}</span>
                   </div>
                   <div>
                     <span className="text-blue-700 font-medium">Added:</span>

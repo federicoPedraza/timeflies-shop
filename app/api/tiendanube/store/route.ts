@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getUserCredentials, updateUserCredentials } from '../../../../lib/tiendanube-auth';
 
 interface TiendanubeStoreResponse {
   id: number;
@@ -19,35 +20,36 @@ export async function GET(request: NextRequest) {
   console.log('🚀 [Tiendanube Store] Endpoint called');
 
   try {
-    // Usar el access token del .env
-    const accessToken = process.env.TIENDANUBE_ACCESS_TOKEN;
-    console.log('🔑 [Tiendanube Store] Access token from .env:', accessToken ? 'Present' : 'Missing');
+    // Get user ID from request headers (set by frontend)
+    const userId = request.headers.get('x-tiendanube-user-id');
+    console.log('👤 [Tiendanube Store] User ID from header:', userId);
 
-    if (!accessToken) {
-      console.log('❌ [Tiendanube Store] No access token found in .env');
+    if (!userId) {
+      console.log('❌ [Tiendanube Store] No user ID provided in header');
       return NextResponse.json(
-        { error: 'TIENDANUBE_ACCESS_TOKEN not configured in .env' },
-        { status: 500 }
+        { error: 'User ID required in x-tiendanube-user-id header' },
+        { status: 400 }
       );
     }
 
-    // Obtener el user_id del .env o del header como fallback
-    let userId = process.env.TIENDANUBE_USER_ID;
-    if (!userId) {
-      userId = request.headers.get('x-tiendanube-user-id') || undefined;
+    // Get user credentials from Convex
+    const credentials = await getUserCredentials(userId);
+    if (!credentials) {
+      console.log('❌ [Tiendanube Store] No credentials found for user:', userId);
+      return NextResponse.json(
+        { error: 'User credentials not found. Please re-authenticate.' },
+        { status: 401 }
+      );
     }
-    console.log('👤 [Tiendanube Store] User ID:', userId);
 
     const userAgent = process.env.TIENDANUBE_USER_AGENT;
-
     console.log('⚙️ [Tiendanube Store] Environment variables:');
     console.log('   - TIENDANUBE_USER_AGENT:', userAgent ? 'Present' : 'Missing');
-    console.log('   - TIENDANUBE_USER_ID:', userId ? 'Present' : 'Missing');
 
-    if (!userId || !userAgent) {
-      console.log('❌ [Tiendanube Store] Missing user ID or user agent');
+    if (!userAgent) {
+      console.log('❌ [Tiendanube Store] Missing user agent from .env');
       return NextResponse.json(
-        { error: 'TIENDANUBE_USER_ID or TIENDANUBE_USER_AGENT not configured in .env' },
+        { error: 'TIENDANUBE_USER_AGENT not configured in .env' },
         { status: 500 }
       );
     }
@@ -56,7 +58,7 @@ export async function GET(request: NextRequest) {
     console.log('🌐 [Tiendanube Store] Making request to:', tiendanubeUrl);
 
     const requestHeaders = {
-      'Authentication': `bearer ${accessToken}`,
+      'Authentication': `bearer ${credentials.access_token}`,
       'User-Agent': userAgent,
       'Content-Type': 'application/json; charset=utf-8',
     };
@@ -116,6 +118,12 @@ export async function GET(request: NextRequest) {
       name: storeData.name,
       email: storeData.email
     });
+
+    // Update user credentials with store info if it changed
+    if (storeData.business_id !== credentials.business_id) {
+      await updateUserCredentials(userId, storeData.business_id, storeData);
+      console.log('✅ [Tiendanube Store] Updated user credentials with store info');
+    }
 
     // Retornar el status y business_id
     const response = {

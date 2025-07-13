@@ -8,6 +8,7 @@ import { api } from "@/convex/_generated/api"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/components/AuthProvider"
 
 // Loading animation component
 function LoadingIndicator() {
@@ -27,6 +28,7 @@ export function StatsCards({
 }) {
   const router = useRouter()
   const [refreshingCheckouts, setRefreshingCheckouts] = useState(false)
+  const { makeAuthenticatedRequest } = useAuth()
   const dashboardStats = useQuery(api.products.getDashboardStats)
   const revenueStats = useQuery(api.orders.getRevenueStats)
   const orderStats = useQuery(api.orders.getOrderStats)
@@ -120,7 +122,7 @@ export function StatsCards({
 
     setRefreshingCheckouts(true);
     try {
-      const response = await fetch('/api/products/sync-checkouts', {
+      const response = await makeAuthenticatedRequest('/api/products/sync-checkouts', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

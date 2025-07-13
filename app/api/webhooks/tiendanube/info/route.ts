@@ -78,7 +78,7 @@ export async function GET() {
         "NEXT_PUBLIC_CONVEX_URL"
       ],
       optional: [],
-      note: "TIENDANUBE_ACCESS_TOKEN is stored in frontend localStorage as 'tiendanube_access_token'"
+      note: "TIENDANUBE_ACCESS_TOKEN is now stored encrypted in Convex database"
     },
     database_tables: {
       tiendanube_products: "Almacena datos de productos sincronizados",

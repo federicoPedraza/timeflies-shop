@@ -2,6 +2,7 @@
 
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { OrdersPageContent } from "@/components/orders-page-content"
+import { ProtectedRoute } from "@/components/ProtectedRoute"
 import { useSearchParams } from "next/navigation"
 import { useEffect, useState, Suspense } from "react"
 
@@ -26,10 +27,12 @@ function OrdersPageWithSearchParams() {
 
 export default function OrdersPage() {
   return (
-    <DashboardLayout>
-      <Suspense fallback={<div>Loading...</div>}>
-        <OrdersPageWithSearchParams />
-      </Suspense>
-    </DashboardLayout>
+    <ProtectedRoute>
+      <DashboardLayout>
+        <Suspense fallback={<div>Loading...</div>}>
+          <OrdersPageWithSearchParams />
+        </Suspense>
+      </DashboardLayout>
+    </ProtectedRoute>
   )
 }

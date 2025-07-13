@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { ConvexHttpClient } from 'convex/browser';
 import { api } from '../../../../convex/_generated/api';
 import { TiendanubeProvider } from '../../../../thirdparties/tiendanube/provider';
+import { getUserCredentials } from '../../../../lib/tiendanube-auth';
 
 export async function POST(request: NextRequest) {
   console.log('🔄 [Products Refresh] Endpoint called');
@@ -17,18 +18,26 @@ export async function POST(request: NextRequest) {
       );
     }
     const convex = new ConvexHttpClient(convexUrl);
-    // Obtener el user_id del .env o del header como fallback
-    let userId = process.env.TIENDANUBE_USER_ID;
-    if (!userId) {
-      userId = request.headers.get('x-tiendanube-user-id') || undefined;
-    }
-    console.log('👤 [Products Refresh] User ID:', userId);
+
+    // Get user ID from request headers (set by frontend)
+    const userId = request.headers.get('x-tiendanube-user-id');
+    console.log('👤 [Products Refresh] User ID from header:', userId);
 
     if (!userId) {
-      console.log('❌ [Products Refresh] Missing user ID');
+      console.log('❌ [Products Refresh] No user ID provided in header');
       return NextResponse.json(
-        { error: 'TIENDANUBE_USER_ID not configured in .env or provided in header' },
+        { error: 'User ID required in x-tiendanube-user-id header' },
         { status: 400 }
+      );
+    }
+
+    // Get user credentials from Convex
+    const credentials = await getUserCredentials(userId);
+    if (!credentials) {
+      console.log('❌ [Products Refresh] No credentials found for user:', userId);
+      return NextResponse.json(
+        { error: 'User credentials not found. Please re-authenticate.' },
+        { status: 401 }
       );
     }
 
@@ -55,46 +64,32 @@ export async function POST(request: NextRequest) {
 
     console.log(`🔄 [Products Refresh] Starting refresh for provider: ${provider}`);
 
-    // Usar el access token del .env
-    const accessToken = process.env.TIENDANUBE_ACCESS_TOKEN;
-    if (!accessToken) {
-      console.log('❌ [Products Refresh] No access token found in .env');
-      return NextResponse.json(
-        { error: 'TIENDANUBE_ACCESS_TOKEN not configured in .env' },
-        { status: 500 }
-      );
-    }
-
-    // Obtener configuración del proveedor usando los tokens del usuario
-    const providerConfig = getProviderConfig(provider, userId, accessToken);
+    // Obtener configuración del proveedor
+    const providerConfig = getProviderConfig(provider, userId, credentials.access_token);
     if (!providerConfig) {
-      console.log('❌ [Products Refresh] Invalid provider configuration');
+      console.log(`❌ [Products Refresh] Invalid provider configuration for: ${provider}`);
       return NextResponse.json(
-        { error: 'Invalid provider configuration' },
-        { status: 500 }
+        { error: `Invalid provider configuration for: ${provider}` },
+        { status: 400 }
       );
     }
 
     // Crear instancia del proveedor
-    const providerInstance = createProvider(provider, providerConfig);
-    if (!providerInstance) {
-      console.log('❌ [Products Refresh] Failed to create provider instance');
+    const tiendanubeProvider = new TiendanubeProvider(providerConfig);
+
+    // Obtener productos del proveedor
+    console.log('📦 [Products Refresh] Fetching products from provider...');
+    const products = await tiendanubeProvider.getProducts();
+
+    if (!products || !Array.isArray(products)) {
+      console.log('❌ [Products Refresh] No products returned from provider');
       return NextResponse.json(
-        { error: 'Failed to create provider instance' },
+        { error: 'No products returned from provider' },
         { status: 500 }
       );
     }
 
-    // Obtener productos del proveedor
-    console.log('📦 [Products Refresh] Fetching products from provider...');
-    const products = await providerInstance.getProducts();
-    console.log(`📦 [Products Refresh] Fetched ${products.length} products from ${provider}`);
-
-    // Log detallado de los primeros 3 productos para debugging
-    console.log('🔍 [Products Refresh] Sample products data:');
-    products.slice(0, 3).forEach((product, index) => {
-      console.log(`📦 [Products Refresh] Product ${index + 1}:`, JSON.stringify(product, null, 2));
-    });
+    console.log(`📦 [Products Refresh] Found ${products.length} products from provider`);
 
     // Convertir productos al formato de la base de datos
     const dbProducts = products.map(product => ({
@@ -137,7 +132,7 @@ export async function POST(request: NextRequest) {
     for (const product of products) {
       try {
         if (product.tiendanube_id) {
-          const images = await providerInstance.getProductImages(product.tiendanube_id);
+          const images = await tiendanubeProvider.getProductImages(product.tiendanube_id);
           const dbImages = images.map(image => ({
             tiendanube_id: image.id,
             product_id: image.product_id,
@@ -197,15 +192,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('💥 [Products Refresh] Unexpected error:', error);
-    console.error('💥 [Products Refresh] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
-
+    console.error('❌ [Products Refresh] Error during refresh:', error);
     return NextResponse.json(
-      {
-        error: 'Failed to refresh products',
-        success: false,
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+      { error: 'Internal server error' },
       { status: 500 }
     );
   }
@@ -218,13 +207,6 @@ function getProviderConfig(provider: string, userId: string, accessToken: string
       accessToken: accessToken,
       userAgent: process.env.TIENDANUBE_USER_AGENT || 'TimeFlies-App/1.0',
     };
-  }
-  return null;
-}
-
-function createProvider(provider: string, config: { appId: string; accessToken: string; userAgent: string }) {
-  if (provider === 'tiendanube') {
-    return new TiendanubeProvider(config);
   }
   return null;
 }
