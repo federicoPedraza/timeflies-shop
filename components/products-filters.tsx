@@ -15,9 +15,13 @@ interface ProductsFiltersProps {
   onFilteredProductsChange: (filteredProducts: Product[]) => void
   initialSearch?: string | null
   initialStockStatus?: string | null
+  isOptionsCollapsed: boolean
+  setIsOptionsCollapsed: (collapsed: boolean) => void
+  activeFiltersCount: number
+  clearFilters: () => void
 }
 
-export function ProductsFilters({ products, onFilteredProductsChange, initialSearch, initialStockStatus }: ProductsFiltersProps) {
+export function ProductsFilters({ products, onFilteredProductsChange, initialSearch, initialStockStatus, isOptionsCollapsed, setIsOptionsCollapsed, activeFiltersCount, clearFilters }: ProductsFiltersProps) {
   const [searchTerm, setSearchTerm] = useState(initialSearch || "")
   const [category, setCategory] = useState<string>("all")
   const [status, setStatus] = useState<string>("all")
@@ -25,7 +29,6 @@ export function ProductsFilters({ products, onFilteredProductsChange, initialSea
   const [brand, setBrand] = useState<string>("all")
   const [minPrice, setMinPrice] = useState("")
   const [maxPrice, setMaxPrice] = useState("")
-  const [isOptionsCollapsed, setIsOptionsCollapsed] = useState(true)
 
   // Get unique values for filter options
   const categories = Array.from(new Set(products.map((p) => p.category)))
@@ -99,54 +102,8 @@ export function ProductsFilters({ products, onFilteredProductsChange, initialSea
     onFilteredProductsChange(filtered)
   }, [products, searchTerm, category, status, stockStatus, brand, minPrice, maxPrice, onFilteredProductsChange])
 
-  const clearFilters = () => {
-    setSearchTerm("")
-    setCategory("all")
-    setStatus("all")
-    setStockStatus("all")
-    setBrand("all")
-    setMinPrice("")
-    setMaxPrice("")
-  }
-
-  const activeFiltersCount = [
-    searchTerm,
-    category !== "all" ? category : null,
-    status !== "all" ? status : null,
-    stockStatus !== "all" ? stockStatus : null,
-    brand !== "all" ? brand : null,
-    minPrice,
-    maxPrice,
-  ].filter(Boolean).length
-
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Filter className="h-4 w-4" />
-            Filters
-            {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
-          </CardTitle>
-          <div className="flex items-center gap-2">
-            {activeFiltersCount > 0 && (
-              <Button variant="outline" size="sm" onClick={clearFilters}>
-                <X className="h-3 w-3 mr-1" />
-                Clear All
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsOptionsCollapsed(!isOptionsCollapsed)}
-              className="p-2"
-              aria-label={isOptionsCollapsed ? "Expand filter options" : "Collapse filter options"}
-            >
-              {isOptionsCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
+    <>
       {!isOptionsCollapsed && (
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -248,6 +205,6 @@ export function ProductsFilters({ products, onFilteredProductsChange, initialSea
           </div>
         </CardContent>
       )}
-    </Card>
+    </>
   )
 }

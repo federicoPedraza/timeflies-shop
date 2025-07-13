@@ -3,6 +3,7 @@ import { StatsCards } from "@/components/stats-cards"
 import { RecentActivity } from "@/components/recent-activity"
 import { ActivityChart } from "@/components/activity-chart"
 import { ClocksSoldFameChart } from "@/components/clocks-sold-fame-chart"
+import { InventoryRevenueChart } from "@/components/inventory-revenue-chart"
 import { Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
 
@@ -44,6 +45,8 @@ export function DashboardContent() {
         <div className="col-span-4 h-full">
           {selectedCard === "Clocks Sold" ? (
             <ClocksSoldFameChart />
+          ) : selectedCard === "Total Revenue" ? (
+            <InventoryRevenueChart />
           ) : (
             <ActivityChart />
           )}

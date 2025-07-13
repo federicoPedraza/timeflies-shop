@@ -201,7 +201,7 @@ export function StatsCards({
       subtitle: `${revenueStats?.totalPaidOrders || 0} paid orders`,
       icon: DollarSign,
       isFinancial: true,
-      selectable: false,
+      selectable: true,
     },
     {
       title: "Incomplete Orders",
@@ -229,7 +229,7 @@ export function StatsCards({
       selectable: false,
     },
     {
-      title: "Inventory Costs",
+      title: "Inventory Value",
       value: stats.inventoryCosts,
       icon: Warehouse,
       isFinancial: true,

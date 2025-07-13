@@ -15,7 +15,7 @@ interface RevenueData {
 }
 
 export function RevenueChart() {
-  const dailyRevenueData = useQuery(api.orders.getDailyRevenueData, { days: 30 })
+  const dailyRevenueData = useQuery(api.orders.getDailyRevenueData, { days: 7 })
   const revenueStats = useQuery(api.orders.getRevenueStats)
 
   const chartData = useMemo(() => {
@@ -91,7 +91,7 @@ export function RevenueChart() {
             <div>
               <CardTitle>Revenue Overview</CardTitle>
               <p className="text-sm text-muted-foreground mt-2">
-                Daily revenue over the last 30 days
+                Daily revenue over the last 7 days
               </p>
             </div>
             <div className="text-right">
@@ -210,7 +210,7 @@ export function RevenueChart() {
 
 // Export the computed values for use in the parent component
 export function useRevenueMetrics() {
-  const dailyRevenueData = useQuery(api.orders.getDailyRevenueData, { days: 30 })
+  const dailyRevenueData = useQuery(api.orders.getDailyRevenueData, { days: 7 })
   const revenueStats = useQuery(api.orders.getRevenueStats)
 
   const totalRevenue = useMemo(() => {

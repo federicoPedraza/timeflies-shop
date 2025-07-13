@@ -8,6 +8,9 @@ import { ProductsFilters } from "@/components/products-filters"
 import { ProductsDataTable } from "@/components/products-data-table"
 import { ProductDetailsDialog } from "@/components/product-details-dialog"
 import { ProductDetailsInline } from "./product-details-inline"
+import { Package, Filter, Eye, ChevronDown, ChevronUp, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 
 export type Product = {
   id: string
@@ -66,6 +69,22 @@ export function ProductsPageContent({ initialProductId, initialSearch, initialSt
   const [inspectedProduct, setInspectedProduct] = useState<Product | null>(null)
   const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const productDetailsRef = useRef<HTMLDivElement>(null)
+  const [isOptionsCollapsed, setIsOptionsCollapsed] = useState(true)
+  const [searchTerm, setSearchTerm] = useState(initialSearch || "")
+  const [stockStatus, setStockStatus] = useState<string>(initialStockStatus || "all")
+  // Add more filter states as needed
+
+  const activeFiltersCount = [
+    searchTerm,
+    stockStatus !== "all" ? stockStatus : null,
+    // Add more filter states here
+  ].filter(Boolean).length
+
+  const clearFilters = () => {
+    setSearchTerm("")
+    setStockStatus("all")
+    // Reset other filters as needed
+  }
 
   // Update URL when inspected product changes
   const updateURL = useCallback((productId: string | null) => {
@@ -145,45 +164,88 @@ export function ProductsPageContent({ initialProductId, initialSearch, initialSt
   if (productsFromDB === undefined) {
     return (
       <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Products Management</h2>
-          <p className="text-muted-foreground">
-            Loading products...
-          </p>
+        {/* Header */}
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <Package className="h-6 w-6 text-gray-600" />
+            <h1 className="text-2xl font-bold">Products</h1>
+          </div>
+          <p className="text-muted-foreground text-sm">Manage your product catalog, inventory, and details in one place.</p>
+        </div>
+        <div className="text-muted-foreground">
+          Loading products...
         </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6 w-full">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">Products Management</h2>
-        <p className="text-muted-foreground">
-          Manage your clock inventory with detailed product information and stock tracking.
-        </p>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-center gap-2">
+          <Package className="h-6 w-6 text-gray-600" />
+          <h1 className="text-2xl font-bold">Products</h1>
+        </div>
+        <p className="text-muted-foreground text-sm">Manage your product catalog, inventory, and details in one place.</p>
       </div>
 
-      {/* Products Section with Filters and Table */}
-      <ProductsDataTable
-        products={filteredProducts}
-        onViewProduct={handleViewProduct}
-        onInspectedProductChange={handleInspectedProductChange}
-        filtersComponent={
-          <ProductsFilters
-            products={products}
-            onFilteredProductsChange={setFilteredProducts}
-            initialSearch={initialSearch}
-            initialStockStatus={initialStockStatus}
-          />
-        }
-        collapseOnProductInspect={!!initialProductId}
-        productSalesStats={productSalesStats}
-      />
+      {/* Filters Section */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-2">
+            <Filter className="h-5 w-5 text-blue-600" />
+            <h2 className="text-xl font-semibold">Filters & Search</h2>
+            {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
+          </div>
+          <div className="flex items-center gap-2">
+            {activeFiltersCount > 0 && (
+              <Button variant="outline" size="sm" onClick={clearFilters}>
+                <X className="h-3 w-3 mr-1" />
+                Clear All
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsOptionsCollapsed(!isOptionsCollapsed)}
+              className="p-2"
+              aria-label={isOptionsCollapsed ? "Expand filter options" : "Collapse filter options"}
+            >
+              {isOptionsCollapsed ? <ChevronDown className="h-4 w-4" /> : <ChevronUp className="h-4 w-4" />}
+            </Button>
+          </div>
+        </div>
+        <ProductsFilters
+          products={products}
+          onFilteredProductsChange={setFilteredProducts}
+          initialSearch={initialSearch}
+          initialStockStatus={initialStockStatus}
+          isOptionsCollapsed={isOptionsCollapsed}
+          setIsOptionsCollapsed={setIsOptionsCollapsed}
+          activeFiltersCount={activeFiltersCount}
+          clearFilters={clearFilters}
+        />
+      </div>
 
-      {/* Inline Product Details */}
+      {/* Products Table Section */}
+      <div className="space-y-4">
+        <ProductsDataTable
+          products={filteredProducts}
+          onViewProduct={handleViewProduct}
+          onInspectedProductChange={handleInspectedProductChange}
+          collapseOnProductInspect={!!initialProductId}
+          productSalesStats={productSalesStats}
+        />
+      </div>
+
+      {/* Selected Product Details Section */}
       {productForDisplay && (
-        <div ref={productDetailsRef}>
+        <div ref={productDetailsRef} className="space-y-4">
+          <div className="flex items-center gap-2">
+            <Eye className="h-5 w-5 text-purple-600" />
+            <h2 className="text-xl font-semibold">Product Details</h2>
+          </div>
           <ProductDetailsInline product={productForDisplay} showShareAndOpenButtons={!!productForDisplay} />
         </div>
       )}

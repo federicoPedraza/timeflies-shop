@@ -1,7 +1,8 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Clock, TrendingUp, Award, DollarSign } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Clock, TrendingUp, Award, DollarSign, BarChart3 } from "lucide-react"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { cn } from "@/lib/utils"
@@ -15,9 +16,20 @@ export function ClocksSoldFameChart() {
     return (
       <Card className="h-full flex flex-col">
         <CardHeader className="flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Clocks Sold Fame Chart</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+              <CardTitle>Clocks Sold Fame Chart</CardTitle>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/analytics#performance')}
+              className="flex items-center gap-2"
+            >
+              <BarChart3 className="h-4 w-4" />
+              View Analytics
+            </Button>
           </div>
           <p className="text-sm text-muted-foreground mt-2">
             Loading sales data for the last 6 months...
@@ -39,9 +51,20 @@ export function ClocksSoldFameChart() {
     return (
       <Card className="h-full flex flex-col">
         <CardHeader className="flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Clocks Sold Fame Chart</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-muted-foreground" />
+              <CardTitle>Clocks Sold Fame Chart</CardTitle>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push('/analytics#performance')}
+              className="flex items-center gap-2"
+            >
+              <BarChart3 className="h-4 w-4" />
+              View Analytics
+            </Button>
           </div>
           <p className="text-sm text-muted-foreground mt-2">
             No sales data available for the last 6 months.
@@ -67,9 +90,20 @@ export function ClocksSoldFameChart() {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-muted-foreground" />
-          <CardTitle>Clocks Sold Fame Chart</CardTitle>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-muted-foreground" />
+            <CardTitle>Clocks Sold Fame Chart</CardTitle>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => router.push('/analytics#performance')}
+            className="flex items-center gap-2"
+          >
+            <BarChart3 className="h-4 w-4" />
+            View Analytics
+          </Button>
         </div>
         <p className="text-sm text-muted-foreground mt-2">
           Top selling products over the last 6 months (non-cancelled orders).

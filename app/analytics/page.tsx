@@ -100,7 +100,7 @@ export default function AnalyticsPage() {
   return (
     <TooltipProvider>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="space-y-2">
           {/* Header */}
           <div className="flex items-center gap-2">
             <BarChart3 className="h-6 w-6 text-gray-600" />

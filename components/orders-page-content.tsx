@@ -193,9 +193,12 @@ export function OrdersPageContent({ initialOrderId, initialSearch, initialOrderS
     return (
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-2">
-          <Package className="h-6 w-6 text-gray-600" />
-          <h1 className="text-2xl font-bold">Orders</h1>
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center gap-2">
+            <Package className="h-6 w-6 text-gray-600" />
+            <h1 className="text-2xl font-bold">Orders</h1>
+          </div>
+          <p className="text-muted-foreground text-sm">Manage and track all your orders with advanced filters and detailed views.</p>
         </div>
         <div className="text-muted-foreground">
           Loading orders...
@@ -207,9 +210,12 @@ export function OrdersPageContent({ initialOrderId, initialSearch, initialOrderS
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-2">
-        <Package className="h-6 w-6 text-gray-600" />
-        <h1 className="text-2xl font-bold">Orders</h1>
+      <div className="flex flex-col gap-0.5">
+        <div className="flex items-center gap-2">
+          <Package className="h-6 w-6 text-gray-600" />
+          <h1 className="text-2xl font-bold">Orders</h1>
+        </div>
+        <p className="text-muted-foreground text-sm">Manage and track all your orders with advanced filters and detailed views.</p>
       </div>
 
       {/* Filters Section */}

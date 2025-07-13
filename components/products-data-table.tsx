@@ -133,57 +133,53 @@ export function ProductsDataTable({
       )}
 
       {/* Header Controls */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Package className="h-5 w-5" />
-                Products Collection ({products.length})
-              </CardTitle>
-              <CardDescription>Discover and manage your exclusive timepiece collection</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
-                <SelectTrigger className="w-40">
-                  <SortAsc className="h-4 w-4 mr-2" />
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="name">Name</SelectItem>
-                  <SelectItem value="price">Price</SelectItem>
-                  <SelectItem value="stock">Stock</SelectItem>
-                  <SelectItem value="created">Created</SelectItem>
-                  <SelectItem value="updated">Updated</SelectItem>
-                </SelectContent>
-              </Select>
+      <div className="flex items-center justify-between">
+        <div>
+          <CardTitle className="flex items-center gap-2 text-xl font-semibold">
+            <Package className="h-5 w-5 text-orange-500" />
+            Products Collection ({products.length})
+          </CardTitle>
+          <CardDescription>Discover and manage your exclusive timepiece collection</CardDescription>
+        </div>
+        <div className="flex items-center gap-2">
+          <Select value={sortBy} onValueChange={(value: SortOption) => setSortBy(value)}>
+            <SelectTrigger className="w-40">
+              <SortAsc className="h-4 w-4 mr-2" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Name</SelectItem>
+              <SelectItem value="price">Price</SelectItem>
+              <SelectItem value="stock">Stock</SelectItem>
+              <SelectItem value="created">Created</SelectItem>
+              <SelectItem value="updated">Updated</SelectItem>
+            </SelectContent>
+          </Select>
 
-              <Button variant="outline" size="sm" onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}>
-                {sortOrder === "asc" ? "↑" : "↓"}
-              </Button>
+          <Button variant="outline" size="sm" onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}>
+            {sortOrder === "asc" ? "↑" : "↓"}
+          </Button>
 
-              <div className="flex border rounded-lg">
-                <Button
-                  variant={viewMode === "grid" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("grid")}
-                  className="rounded-r-none"
-                >
-                  <Grid3X3 className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant={viewMode === "list" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setViewMode("list")}
-                  className="rounded-l-none"
-                >
-                  <List className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+          <div className="flex border rounded-lg">
+            <Button
+              variant={viewMode === "grid" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+              className="rounded-r-none"
+            >
+              <Grid3X3 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="rounded-l-none"
+            >
+              <List className="h-4 w-4" />
+            </Button>
           </div>
-        </CardHeader>
-      </Card>
+        </div>
+      </div>
 
       {/* Products Display */}
       {viewMode === "grid" ? (
