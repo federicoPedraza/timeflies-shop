@@ -49,7 +49,7 @@ export async function GET(req: NextRequest) {
     const encryptedAccessToken = encrypt(data.access_token);
 
     // Store encrypted credentials in Convex
-    const result = await convex.mutation(api.auth.upsertUserCredentials, {
+    await convex.mutation(api.auth.upsertUserCredentials, {
       user_id: userId,
       access_token: encryptedAccessToken,
       business_id: null, // Will be updated when store info is fetched

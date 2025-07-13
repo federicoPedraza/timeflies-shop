@@ -3,8 +3,6 @@ import { ConvexHttpClient } from 'convex/browser';
 import { api } from '@/convex/_generated/api';
 import { getUserCredentials } from '@/lib/tiendanube-auth';
 
-const convex = new ConvexHttpClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
-
 export async function POST(request: NextRequest) {
   try {
     console.log('🔄 [Sync Checkouts] Starting checkout synchronization...');
@@ -54,7 +52,10 @@ export async function POST(request: NextRequest) {
 
     console.log(`📦 [Sync Checkouts] Syncing checkouts for store ${userId}`);
 
-    let allCheckouts: any[] = [];
+    let allCheckouts: Array<{
+      id: number;
+      [key: string]: unknown;
+    }> = [];
     let page = 1;
     const perPage = 50;
     let hasMore = true;

@@ -127,18 +127,34 @@ export const getCheckoutsWithProviderData = query({
     const tiendanubeCheckouts = await ctx.db.query("tiendanube_checkouts").collect();
 
     // Transformar los datos al formato requerido por el UI
-    const checkoutsWithDetails = tiendanubeCheckouts.map((checkout) => {
+    const checkoutsWithDetails = await Promise.all(tiendanubeCheckouts.map(async (checkout) => {
       // Parsear los productos
       let products = [];
       try {
         const productsData = JSON.parse(checkout.products);
-        products = productsData.map((product: any) => ({
-          id: product.id?.toString() || product.product_id?.toString() || Math.random().toString(),
-          name: product.name || "Product without name",
-          category: product.category || "No category",
-          price: parseFloat(product.price || "0"), // NO convertir de centavos
-          quantity: product.quantity || 1,
-          image: product.image?.src || "/placeholder.svg",
+        products = await Promise.all(productsData.map(async (product: any) => {
+          const providerProductId = product.id?.toString() || product.product_id?.toString();
+
+          // Look up the product in our database by tiendanube_id
+          let convexProductId = null;
+          if (providerProductId) {
+            const dbProduct = await ctx.db
+              .query("tiendanube_products")
+              .filter((q) => q.eq(q.field("tiendanube_id"), parseInt(providerProductId)))
+              .first();
+            convexProductId = dbProduct?._id || null;
+          }
+
+          return {
+            id: convexProductId || providerProductId || Math.random().toString(),
+            _id: convexProductId || providerProductId || Math.random().toString(),
+            providerProductId: providerProductId || "unknown",
+            name: product.name || "Product without name",
+            category: product.category || "No category",
+            price: parseFloat(product.price || "0"), // NO convertir de centavos
+            quantity: product.quantity || 1,
+            image: product.image?.src || "/placeholder.svg",
+          };
         }));
       } catch (error) {
         console.error("Error parsing products for checkout", checkout.tiendanube_id, error);
@@ -206,7 +222,7 @@ export const getCheckoutsWithProviderData = query({
           updated_at: checkout.updated_at,
         },
       };
-    });
+    }));
 
     return checkoutsWithDetails;
   },

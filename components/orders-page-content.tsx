@@ -25,6 +25,8 @@ export type Order = {
   }
   products: {
     id: string
+    _id: string
+    providerProductId: string
     name: string
     category: string
     price: number

@@ -1,7 +1,7 @@
 "use client"
 
 import { AppSidebar } from "@/components/app-sidebar"
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { useAuth } from "./AuthProvider"
 import { AuthStatus } from "./AuthStatus"
 import { Button } from "./ui/button"

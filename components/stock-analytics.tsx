@@ -402,7 +402,7 @@ export function StockAnalytics({ onLoaded }: { onLoaded?: () => void }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {filteredData.slice(0, 20).map((product, index) => (
+              {filteredData.slice(0, 20).map((product) => (
                 <div
                   key={product.productId}
                   className="flex items-center gap-4 p-3 rounded-lg border hover:bg-gray-50 transition-colors"

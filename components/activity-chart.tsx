@@ -1,11 +1,9 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useMemo, useState } from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import { useRouter } from "next/navigation"
@@ -24,10 +22,6 @@ const FILTERS = [
 export function ActivityChart() {
   const orders = useQuery(api.orders.getOrdersWithProviderData)
   const webhookLogsQuery = useQuery(api.products.getWebhookLogsWithInternalIds, { limit: 1000 })
-  const [currentDate, setCurrentDate] = useState(() => {
-    const now = new Date()
-    return new Date(now.getFullYear(), now.getMonth(), 1) // Start of current month
-  })
 
   // Dynamic number of days state
   const [showLastDays, setShowLastDays] = useState(100)
@@ -119,24 +113,7 @@ export function ActivityChart() {
     return ''
   }
 
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    setCurrentDate(prev => {
-      const newDate = new Date(prev)
-      if (direction === 'prev') {
-        newDate.setMonth(newDate.getMonth() - 1)
-      } else {
-        newDate.setMonth(newDate.getMonth() + 1)
-      }
-      return newDate
-    })
-  }
 
-  const formatMonthYear = (date: Date) => {
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      year: 'numeric'
-    })
-  }
 
   const filterLabels = {
     orders: {

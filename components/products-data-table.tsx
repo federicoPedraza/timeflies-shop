@@ -1,20 +1,17 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { Package, Grid3X3, List, SortAsc, Eye, Edit, Trash2, MoreHorizontal, AlertTriangle, TrendingUp, TrendingDown, Minus, ExternalLink } from "lucide-react"
+import { Package, Grid3X3, List, SortAsc, AlertTriangle, ExternalLink } from "lucide-react"
 import type { Product } from "./products-page-content"
 import { formatPrice, numberToWords } from "@/lib/utils"
 
 interface ProductsDataTableProps {
   products: Product[]
-  onViewProduct: (product: Product) => void
   onInspectedProductChange: (product: Product | null) => void
   filtersComponent?: React.ReactNode
   collapseOnProductInspect?: boolean
@@ -32,7 +29,6 @@ const statusColors = {
 
 export function ProductsDataTable({
   products,
-  onViewProduct,
   onInspectedProductChange,
   filtersComponent,
   collapseOnProductInspect = false,
@@ -91,7 +87,7 @@ export function ProductsDataTable({
   }
 
   const sortedProducts = [...products].sort((a, b) => {
-    let aValue: any, bValue: any
+    let aValue: string | number, bValue: string | number
 
     switch (sortBy) {
       case "name":

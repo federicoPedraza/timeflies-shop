@@ -5,7 +5,7 @@ import { decrypt } from './encryption';
 export interface TiendanubeCredentials {
   access_token: string;
   business_id: string | null;
-  store_info: any | null;
+  store_info: Record<string, unknown> | null;
 }
 
 export async function getUserCredentials(userId: string): Promise<TiendanubeCredentials | null> {
@@ -41,7 +41,7 @@ export async function getUserCredentials(userId: string): Promise<TiendanubeCred
 export async function updateUserCredentials(
   userId: string,
   businessId: string | null,
-  storeInfo: any | null
+  storeInfo: Record<string, unknown> | null
 ): Promise<boolean> {
   try {
     const convexUrl = process.env.NEXT_PUBLIC_CONVEX_URL;

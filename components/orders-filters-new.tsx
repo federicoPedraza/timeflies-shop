@@ -5,16 +5,17 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, Filter, X, ChevronDown, ChevronUp } from "lucide-react"
+import { CalendarIcon } from "lucide-react"
 import { format } from "date-fns"
 import { cn } from "@/lib/utils"
 import type { Order } from "@/components/orders-page-content"
 
 interface Product {
   id: string
+  _id: string
+  providerProductId: string
   name: string
   category: string
   price: number
@@ -35,7 +36,7 @@ interface OrdersFiltersProps {
   clearFilters: () => void
 }
 
-export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch, initialOrderStatus, initialDateFrom, initialDateTo, isOptionsCollapsed, setIsOptionsCollapsed, activeFiltersCount, clearFilters }: OrdersFiltersProps) {
+export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch, initialOrderStatus, initialDateFrom, initialDateTo, isOptionsCollapsed }: OrdersFiltersProps) {
   const [searchTerm, setSearchTerm] = useState(initialSearch || "")
   const [orderStatus, setOrderStatus] = useState<string>(initialOrderStatus || "all")
   const [paymentStatus, setPaymentStatus] = useState<string>("all")
@@ -86,8 +87,8 @@ export function OrdersFilters({ orders, onFilteredOrdersChange, initialSearch, i
       filtered = filtered.filter((order) => order.paymentMethod === paymentMethod)
     }
     // Normalize dateFrom to start of day, dateTo to end of day
-    let normDateFrom: Date | undefined = dateFrom ? new Date(dateFrom) : undefined;
-    let normDateTo: Date | undefined = dateTo ? new Date(dateTo) : undefined;
+    const normDateFrom: Date | undefined = dateFrom ? new Date(dateFrom) : undefined;
+    const normDateTo: Date | undefined = dateTo ? new Date(dateTo) : undefined;
     if (normDateFrom) {
       normDateFrom.setHours(0, 0, 0, 0);
     }

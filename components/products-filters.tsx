@@ -1,13 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Filter, X, ChevronDown, ChevronUp } from "lucide-react"
 import type { Product } from "@/components/products-page-content"
 
 interface ProductsFiltersProps {
@@ -21,7 +18,7 @@ interface ProductsFiltersProps {
   clearFilters: () => void
 }
 
-export function ProductsFilters({ products, onFilteredProductsChange, initialSearch, initialStockStatus, isOptionsCollapsed, setIsOptionsCollapsed, activeFiltersCount, clearFilters }: ProductsFiltersProps) {
+export function ProductsFilters({ products, onFilteredProductsChange, initialSearch, initialStockStatus, isOptionsCollapsed }: ProductsFiltersProps) {
   const [searchTerm, setSearchTerm] = useState(initialSearch || "")
   const [category, setCategory] = useState<string>("all")
   const [status, setStatus] = useState<string>("all")

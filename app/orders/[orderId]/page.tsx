@@ -76,7 +76,7 @@ export default function OrderPage({ params }: OrderPageProps) {
           <div className="flex items-center justify-center min-h-screen">
             <div className="text-center">
               <h2 className="text-2xl font-bold tracking-tight">Order Not Found</h2>
-              <p className="text-muted-foreground">The order you're looking for doesn't exist.</p>
+              <p className="text-muted-foreground">The order you&apos;re looking for doesn&apos;t exist.</p>
               <Button onClick={handleBackToOrders} className="mt-4">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Orders

@@ -21,8 +21,8 @@ function AbandonedCheckoutsSection() {
     setError(null);
     try {
       await dismissAll({ user_id: userId });
-    } catch (e: any) {
-      setError(e.message || "Error dismissing checkouts");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Error dismissing checkouts");
     }
     setLoading(false);
   };

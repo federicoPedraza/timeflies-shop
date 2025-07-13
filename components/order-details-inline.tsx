@@ -322,14 +322,6 @@ export const OrderDetailsInline = memo(function OrderDetailsInline({ order, show
                           <h4 className="font-medium flex items-center gap-2">
                             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                             {product.name}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="ml-1"
-                              onClick={() => router.push(`/products/${product.id}`)}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
                           </h4>
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <Tag className="h-3 w-3" />

@@ -127,7 +127,16 @@ export async function POST(request: NextRequest) {
 
     // Fetch and sync product images
     console.log('🖼️ [Products Refresh] Fetching and syncing product images...');
-    const allImages: any[] = [];
+    const allImages: Array<{
+      tiendanube_id: number;
+      product_id: number;
+      src: string;
+      position: number;
+      alt: string | null;
+      created_at: string;
+      updated_at: string;
+      added_at: number;
+    }> = [];
 
     for (const product of products) {
       try {

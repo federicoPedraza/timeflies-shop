@@ -5,7 +5,7 @@ import { Badge } from "./ui/badge";
 import { CheckCircle, XCircle } from "lucide-react";
 
 export function AuthStatus() {
-  const { isAuthenticated, isLoading, userId } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (

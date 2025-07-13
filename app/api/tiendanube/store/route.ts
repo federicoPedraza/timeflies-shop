@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
 
     // Update user credentials with store info if it changed
     if (storeData.business_id !== credentials.business_id) {
-      await updateUserCredentials(userId, storeData.business_id, storeData);
+      await updateUserCredentials(userId, storeData.business_id, storeData as unknown as Record<string, unknown>);
       console.log('✅ [Tiendanube Store] Updated user credentials with store info');
     }
 

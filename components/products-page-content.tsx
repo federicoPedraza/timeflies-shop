@@ -6,7 +6,6 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "../convex/_generated/api"
 import { ProductsFilters } from "@/components/products-filters"
 import { ProductsDataTable } from "@/components/products-data-table"
-import { ProductDetailsDialog } from "@/components/product-details-dialog"
 import { ProductDetailsInline } from "./product-details-inline"
 import { Package, Filter, Eye, ChevronDown, ChevronUp, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -65,9 +64,7 @@ export function ProductsPageContent({ initialProductId, initialSearch, initialSt
   const productSalesStats = useQuery(api.products.getProductSalesStats)
   const [products, setProducts] = useState<Product[]>([])
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([])
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [inspectedProduct, setInspectedProduct] = useState<Product | null>(null)
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
   const productDetailsRef = useRef<HTMLDivElement>(null)
   const [isOptionsCollapsed, setIsOptionsCollapsed] = useState(true)
   const [searchTerm, setSearchTerm] = useState(initialSearch || "")
@@ -129,11 +126,6 @@ export function ProductsPageContent({ initialProductId, initialSearch, initialSt
       // If productsFromDB is still undefined (loading), wait for it to load
     }
   }, [initialProductId, products, productsFromDB, updateURL])
-
-  const handleViewProduct = useCallback((product: Product) => {
-    setSelectedProduct(product)
-    setIsDetailsOpen(true)
-  }, [])
 
   const handleInspectedProductChange = useCallback((product: Product | null) => {
     setInspectedProduct(product)
@@ -232,7 +224,6 @@ export function ProductsPageContent({ initialProductId, initialSearch, initialSt
       <div className="space-y-4">
         <ProductsDataTable
           products={filteredProducts}
-          onViewProduct={handleViewProduct}
           onInspectedProductChange={handleInspectedProductChange}
           collapseOnProductInspect={!!initialProductId}
           productSalesStats={productSalesStats}
@@ -249,9 +240,6 @@ export function ProductsPageContent({ initialProductId, initialSearch, initialSt
           <ProductDetailsInline product={productForDisplay} showShareAndOpenButtons={!!productForDisplay} />
         </div>
       )}
-
-      {/* Details Dialog (kept for backward compatibility with action button) */}
-      <ProductDetailsDialog product={selectedProduct} isOpen={isDetailsOpen} onClose={() => setIsDetailsOpen(false)} />
     </div>
   )
 }

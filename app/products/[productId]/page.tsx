@@ -78,7 +78,7 @@ export default function ProductPage({ params }: ProductPageProps) {
           <div className="flex items-center justify-center min-h-screen">
             <div className="text-center">
               <h2 className="text-2xl font-bold tracking-tight">Product Not Found</h2>
-              <p className="text-muted-foreground">The product you're looking for doesn't exist.</p>
+              <p className="text-muted-foreground">The product you&apos;re looking for doesn&apos;t exist.</p>
               <Button onClick={handleBackToProducts} className="mt-4">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Products

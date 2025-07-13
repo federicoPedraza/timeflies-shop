@@ -420,18 +420,34 @@ export const getOrdersWithProviderData = query({
     const tiendanubeOrders = await ctx.db.query("tiendanube_orders").collect();
 
     // Transformar los datos al formato requerido por el UI
-    const ordersWithDetails = tiendanubeOrders.map((order) => {
+    const ordersWithDetails = await Promise.all(tiendanubeOrders.map(async (order) => {
       // Parsear los productos
       let products = [];
       try {
         const productsData = JSON.parse(order.products);
-        products = productsData.map((product: any) => ({
-          id: product.id?.toString() || product.product_id?.toString() || Math.random().toString(),
-          name: product.name || "Product without name",
-          category: product.category || "No category",
-          price: parseFloat(product.price || "0"), // NO convertir de centavos
-          quantity: product.quantity || 1,
-          image: product.image?.src || "/placeholder.svg",
+        products = await Promise.all(productsData.map(async (product: any) => {
+          const providerProductId = product.id?.toString() || product.product_id?.toString();
+
+          // Look up the product in our database by tiendanube_id
+          let convexProductId = null;
+          if (providerProductId) {
+            const dbProduct = await ctx.db
+              .query("tiendanube_products")
+              .filter((q) => q.eq(q.field("tiendanube_id"), parseInt(providerProductId)))
+              .first();
+            convexProductId = dbProduct?._id || null;
+          }
+
+          return {
+            id: convexProductId || providerProductId || Math.random().toString(),
+            _id: convexProductId || providerProductId || Math.random().toString(),
+            providerProductId: providerProductId || "unknown",
+            name: product.name || "Product without name",
+            category: product.category || "No category",
+            price: parseFloat(product.price || "0"), // NO convertir de centavos
+            quantity: product.quantity || 1,
+            image: product.image?.src || "/placeholder.svg",
+          };
         }));
       } catch (error) {
         console.error("Error parsing products for order", order.tiendanube_id, error);
@@ -583,7 +599,7 @@ export const getOrdersWithProviderData = query({
         shippingInfo,
         notes: ((order.note ?? order.owner_note) || undefined) as string | undefined,
       };
-    });
+    }));
 
     return ordersWithDetails;
   },

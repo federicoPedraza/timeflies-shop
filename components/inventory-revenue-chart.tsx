@@ -5,32 +5,13 @@ import { Button } from "@/components/ui/button"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useMemo, useState } from "react"
-import { DollarSign, TrendingUp, BarChart3, Calendar, Package } from "lucide-react"
+import { DollarSign, BarChart3, Calendar, Package } from "lucide-react"
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip"
 import { cn, formatPrice, numberToWords } from "@/lib/utils"
 import { useRouter } from "next/navigation"
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from "recharts"
 
-interface RevenueData {
-  date: string
-  revenue: number
-  potentialRevenue: number
-  orders: number
-  products: Array<{
-    productId: string
-    name: string
-    sku: string
-    quantity: number
-    revenue: number
-    price: number
-  }>
-}
 
-const CHART_TYPES = [
-  { key: "daily", label: "Daily Revenue", icon: Calendar },
-  { key: "products", label: "Top Products", icon: Package },
-  { key: "trends", label: "Revenue Trends", icon: TrendingUp },
-]
 
 export function InventoryRevenueChart() {
   // Use backend analytics only
@@ -40,22 +21,6 @@ export function InventoryRevenueChart() {
   const router = useRouter()
   type ChartType = 'daily' | 'products';
   const [activeChartType, setActiveChartType] = useState<ChartType>("daily")
-
-  // Compute trends from daily data
-  const revenueTrends = useMemo(() => {
-    if (!dailyRevenueData || dailyRevenueData.length < 7) return null
-    const last7Days = dailyRevenueData.slice(-7)
-    const previous7Days = dailyRevenueData.slice(-14, -7)
-    const currentAvg = last7Days.reduce((sum, day) => sum + day.revenue, 0) / 7
-    const previousAvg = previous7Days.length === 7 ? previous7Days.reduce((sum, day) => sum + day.revenue, 0) / 7 : 0
-    const change = previousAvg > 0 ? ((currentAvg - previousAvg) / previousAvg) * 100 : 0
-    return {
-      currentAvg,
-      previousAvg,
-      change,
-      trend: change > 5 ? 'increasing' : change < -5 ? 'decreasing' : 'stable'
-    }
-  }, [dailyRevenueData])
 
   // Combine daily revenue and potential revenue data
   const dailyAnalytics = useMemo(() => {
@@ -130,7 +95,6 @@ export function InventoryRevenueChart() {
   const totalRevenue = dailyRevenueData.reduce((sum, day) => sum + day.revenue, 0)
   const totalPotentialRevenue = dailyPotentialRevenueData.reduce((sum, day) => sum + day.potentialRevenue, 0)
   const averageRevenue = dailyRevenueData.length > 0 ? totalRevenue / dailyRevenueData.length : 0
-  const averagePotentialRevenue = dailyPotentialRevenueData.length > 0 ? totalPotentialRevenue / dailyPotentialRevenueData.length : 0
 
   return (
     <TooltipProvider>
@@ -161,7 +125,6 @@ export function InventoryRevenueChart() {
             {/* Chart Type Selector */}
             <div className="flex items-center justify-end gap-2 mt-4 flex-shrink-0">
               {[{ key: "daily", label: "Daily Revenue", icon: Calendar }, { key: "products", label: "Top Products", icon: Package }].map((chartType) => {
-                const Icon = chartType.icon
                 return (
                   <button
                     key={chartType.key}

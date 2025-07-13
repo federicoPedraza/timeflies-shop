@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { useQuery } from "convex/react"
 import { api } from "@/convex/_generated/api"
 import { useMemo } from "react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts"
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts"
 import { format } from "date-fns"
 import { formatPrice, numberToWords } from "@/lib/utils"
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
@@ -16,7 +16,6 @@ interface RevenueData {
 
 export function RevenueChart() {
   const dailyRevenueData = useQuery(api.orders.getDailyRevenueData, { days: 7 })
-  const revenueStats = useQuery(api.orders.getRevenueStats)
 
   const chartData = useMemo(() => {
     if (!dailyRevenueData) return []
@@ -43,30 +42,7 @@ export function RevenueChart() {
     return Math.max(...dailyRevenueData.map(item => item.revenue))
   }, [dailyRevenueData])
 
-  const maxRevenueDay = useMemo(() => {
-    if (!dailyRevenueData || dailyRevenueData.length === 0) return null
-    const maxItem = dailyRevenueData.reduce((max, item) =>
-      item.revenue > max.revenue ? item : max
-    )
-    return {
-      date: format(new Date(maxItem.date), 'MMM dd, yyyy'),
-      revenue: maxItem.revenue
-    }
-  }, [dailyRevenueData])
 
-  const revenueTrend = useMemo(() => {
-    if (!dailyRevenueData || dailyRevenueData.length < 7) return 'stable'
-
-    const last7Days = dailyRevenueData.slice(-7)
-    const firstHalf = last7Days.slice(0, 3).reduce((sum, item) => sum + item.revenue, 0) / 3
-    const secondHalf = last7Days.slice(-3).reduce((sum, item) => sum + item.revenue, 0) / 3
-
-    const change = ((secondHalf - firstHalf) / firstHalf) * 100
-
-    if (change > 10) return 'increasing'
-    if (change < -10) return 'decreasing'
-    return 'stable'
-  }, [dailyRevenueData])
 
   if (!dailyRevenueData) {
     return (

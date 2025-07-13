@@ -268,14 +268,6 @@ export function OrderDetailsDialog({ order, isOpen, onClose }: OrderDetailsDialo
                           <h4 className="font-medium flex items-center gap-2">
                             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                             {product.name}
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="ml-1"
-                              onClick={() => window.open(`/products/${product.id}`, '_blank')}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </Button>
                           </h4>
                           <p className="text-sm text-muted-foreground flex items-center gap-2">
                             <Tag className="h-3 w-3" />
